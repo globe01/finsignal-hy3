@@ -1,2 +1,184 @@
-# finsignal-hy3
-基于 Hy3 的上市公司财务异常信号识别与漏报敏感型评估系统｜犀牛鸟开源活动个人作品
+# FinSignal-Hy3
+
+> 基于 Hy3 的上市公司财务异常信号识别与漏报敏感型评估系统
+>
+> 犀牛鸟开源实战任务 · 题目一 · 个人参赛作品
+
+[![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Status](https://img.shields.io/badge/status-proposal-orange)](#项目进度)
+
+## 项目简介
+
+FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项目输入一家制造业上市公司连续 3～5 年的结构化财务数据，由混元 Hy3 输出包含原始数据、计算过程、替代解释、核查建议和结论边界的财务异常信号卡片。
+
+项目同时设计一套“漏报敏感型”混合评估方法，不只检查模型报出的异常是否正确，还会显式统计模型遗漏了哪些标准异常，并通过规则复算、注入实验、阴性对照、人工标注和 Hy3 语义评审验证评估方法的可靠性。
+
+本项目中的“财务异常”仅指满足预设条件、值得进一步核查的财务关注信号，不代表相关公司存在财务造假，也不构成投资建议。
+
+## 核心特点
+
+- **漏报敏感评估**：以严重异常漏报率为主指标，同时报告加权召回率、精确率和过度推断率。
+- **底层数据可验证**：原始数字、期间、公式、单位和证据位置均可由程序回表复算。
+- **开放分析可评审**：使用锚点式 Rubric 评价异常重要性、替代解释、核查建议和结论边界。
+- **会计一致的异常注入**：通过配套传导和报表恒等式检查构造可控评测样本。
+- **阴性与对抗验证**：检查模型是否强行找问题，以及评估器能否识别伪造证据、错误公式和术语堆砌。
+- **评估器消融**：对比纯 Hy3 Judge、纯规则和混合评估器与人工标注的一致性。
+
+## 目标异常类型
+
+第一版限定制造业上市公司，覆盖以下八类目标信号：
+
+| signal_type | 财务关注信号 |
+|---|---|
+| cashflow_profit_divergence | 经营现金流与净利润背离 |
+| receivables_revenue_divergence | 应收账款与营业收入背离 |
+| inventory_cost_divergence | 存货与营业成本背离 |
+| gross_net_margin_divergence | 毛利率与净利率背离 |
+| nonrecurring_profit_dependence | 非经常性损益依赖 |
+| goodwill_net_assets_pressure | 商誉占净资产压力 |
+| short_term_solvency_pressure | 短期偿债压力 |
+| impairment_loss_surge | 减值损失激增 |
+
+系统保留 other 类型，用于记录枚举之外但可能合理的额外发现。other 不进入八类目标信号的主召回率和精确率，由人工单独复核。
+
+## 系统架构
+
+~~~text
+制造业公司 3～5 年结构化财务数据
+                    │
+                    ▼
+          指标预计算与 Prompt 组装
+                    │
+                    ▼
+            Hy3 直接识别异常
+                    │
+                    ▼
+             结构化异常卡片
+                    │
+          ┌─────────┴─────────┐
+          ▼                   ▼
+  规则评估层             Hy3 Judge 层
+  · 原始数值回表         · 重要性排序
+  · 公式安全复算         · 解释质量
+  · 证据定位检查         · 过度推断
+  · 漏报/误报比对        · 安全边界
+          └─────────┬─────────┘
+                    ▼
+             评测结果与归因报告
+~~~
+
+默认应用链路不会把规则候选答案提供给 Hy3。规则引擎只位于评估侧，避免模型变成对已知答案的简单确认。
+
+## 核心评估指标
+
+主指标：
+
+- 严重异常漏报率。
+
+支撑指标：
+
+- 严重程度加权召回率；
+- 异常识别精确率；
+- 原始数值匹配准确率；
+- 公式与算术复算通过率；
+- 过度推断率。
+
+项目还将通过好、中、差三档输出、阴性对照、注入强度梯度和对抗样本验证评估器的判别力与一致性。
+
+## 项目进度
+
+当前处于方案确认和初稿开发阶段。
+
+- [x] 完成选题、范围约束和评估方法设计
+- [x] 完成系统架构与时间规划
+- [ ] 整理制造业公司结构化财务数据
+- [ ] 实现 Hy3 调用与 JSON Schema
+- [ ] 实现四类重点异常注入模板
+- [ ] 实现规则评估器和 Hy3 Judge
+- [ ] 完成有效性实验与人工一致性验证
+- [ ] 完成 Streamlit Demo、分析报告和结果表
+
+完整方案见 [docs/proposal.md](docs/proposal.md)。
+
+## 快速开始
+
+> 当前仓库处于初稿开发阶段，以下接口将在首个可运行版本中保持兼容；具体命令会随实现进度更新。
+
+### 1. 环境要求
+
+- Python 3.10+
+- 可访问的 Hy3 OpenAI-compatible API
+
+### 2. 安装依赖
+
+~~~bash
+python -m venv .venv
+
+# Windows PowerShell
+.\.venv\Scripts\Activate.ps1
+
+pip install -r requirements.txt
+~~~
+
+### 3. 配置环境变量
+
+复制 .env.example 为 .env，并填写本地配置：
+
+~~~env
+HY3_BASE_URL=https://your-hy3-endpoint.example/v1
+HY3_API_KEY=your-api-key
+HY3_MODEL=hy3
+~~~
+
+请勿将 .env、API Key 或其他密钥提交到仓库。
+
+### 4. 计划中的运行方式
+
+~~~bash
+# CLI 异常扫描
+python -m app.cli --input data/base/example.csv
+
+# 完整评测
+python -m eval.run_eval
+
+# Web Demo
+streamlit run app/streamlit_app.py
+~~~
+
+## 计划中的仓库结构
+
+~~~text
+finsignal-hy3/
+├── app/                 # Hy3 调用、Schema、CLI 与 Streamlit
+├── config/              # 异常规则、严重度和安全公式注册表
+├── data/                # 基底数据、派生样本和金标准
+├── docs/                # 方案、评估方法、标注指南和分析报告
+├── eval/                # 规则评估、Hy3 Judge 和有效性实验
+├── generator/           # 注入引擎与阴性样本生成
+├── results/             # 原始输出、结果表和图表
+├── .env.example
+├── .gitignore
+├── LICENSE
+├── README.md
+└── requirements.txt
+~~~
+
+## 数据与复现
+
+- 财务数据只使用公开披露材料，并在数据清单中记录来源 URL、年度、报表口径和提取时间。
+- 不在仓库中提交 API Key、私有数据或包含敏感信息的本地文件。
+- 派生数据将记录基础公司、注入类型、修改字段、异常强度和会计一致性检查结果。
+- 同一家公司的真实与派生窗口只进入同一个数据分组，避免同源数据泄漏。
+
+## 免责声明
+
+本项目仅用于教育、研究和开源活动展示。输出内容不能替代注册会计师、审计机构、证券研究人员或其他专业人士的判断，不构成投资建议、交易建议或财务造假认定。
+
+## 活动声明
+
+本项目为犀牛鸟开源活动个人参赛作品，并非腾讯、腾讯混元或 Hy3 官方发布或维护的项目。Hy3 的名称和相关权利归其权利人所有。
+
+## License
+
+项目代码使用 [MIT License](LICENSE) 开源。第三方模型、数据和依赖仍遵循其各自许可证与使用条款。
