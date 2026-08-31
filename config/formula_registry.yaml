@@ -1,0 +1,54 @@
+# 安全公式注册表（对应方案 §5.2）
+# 评估器只调用下方 func 指向的白名单安全函数，绝不 eval 模型生成的表达式。
+# func 名映射到 eval/formula_eval.py 中的实现。
+formulas:
+  cfo_over_netprofit:
+    description: 经营现金流/净利润
+    func: ratio
+    inputs: [cfo, net_profit]
+    note: 用于 cashflow_profit_divergence 的复算
+  ar_minus_rev_growth:
+    description: 应收账款增速减营业收入增速（百分点）
+    func: growth_diff_pp
+    inputs: [accounts_receivable, revenue]
+    note: 用于 receivables_revenue_divergence
+  inv_minus_cogs_growth:
+    description: 存货增速减营业成本增速（百分点）
+    func: growth_diff_pp
+    inputs: [inventory, cogs]
+    note: 用于 inventory_cost_divergence
+  gross_net_margin_gap:
+    description: 毛利率变化减净利率变化（百分点）
+    func: margin_gap_pp
+    inputs: [revenue, cogs, net_profit]
+    note: 用于 gross_net_margin_divergence
+  nonrecurring_over_netprofit:
+    description: 非经常性损益绝对值/净利润
+    func: abs_ratio
+    inputs: [nonrecurring, net_profit]
+    note: 用于 nonrecurring_profit_dependence
+  goodwill_over_equity:
+    description: 商誉/所有者权益
+    func: ratio
+    inputs: [goodwill, equity]
+    note: 用于 goodwill_net_assets_pressure
+  current_ratio:
+    description: 流动资产/流动负债
+    func: ratio
+    inputs: [current_assets, current_liabilities]
+    note: 用于 short_term_solvency_pressure
+  short_debt_over_cash:
+    description: 短期借款/货币资金
+    func: ratio
+    inputs: [short_borrow, cash]
+    note: 用于 short_term_solvency_pressure
+  impairment_yoy_growth:
+    description: 减值损失同比增幅（小数，1.0=100%）
+    func: yoy_growth
+    inputs: [impairment]
+    note: 用于 impairment_loss_surge
+  impairment_over_totalprofit:
+    description: 减值损失绝对值/利润总额绝对值
+    func: abs_ratio
+    inputs: [impairment, total_profit]
+    note: 用于 impairment_loss_surge

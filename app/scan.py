@@ -79,10 +79,11 @@ def scan_text(
     company: str = "示例制造公司",
     years: str = "2022-2024",
     max_schema_retries: int = 2,
+    temperature: float | None = None,
 ) -> ScanOutput:
     client = Hy3Client()
     messages = build_scan_messages(company, years, text)
-    raw = client.chat(messages, json_mode=True)
+    raw = client.chat(messages, json_mode=True, temperature=temperature)
 
     for attempt in range(max_schema_retries + 1):
         try:

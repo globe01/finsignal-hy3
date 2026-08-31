@@ -1,0 +1,55 @@
+# 严重度可复现定义（对应方案 §5.5）
+# 标准化超阈值程度 s = d*(x - theta) / sigma
+# 标签：s<0 阴性；0<=s<0.5 low；0.5<=s<1.5 medium；s>=1.5 high
+scale:
+  low_max: 0.5
+  medium_max: 1.5
+# 各信号权重（方案 §6.3）：high=3, medium=2, low=1
+weights:
+  high: 3
+  medium: 2
+  low: 1
+
+# 每个信号给出：measure（rules.py 中计算 x 的例程名）、theta、d、sigma
+# d=1 表示越大越危险；d=-1 表示越小越危险
+signals:
+  cashflow_profit_divergence:
+    measure: cfo_over_netprofit_min2
+    theta: 0.5
+    d: -1
+    sigma: 0.2
+  receivables_revenue_divergence:
+    measure: ar_minus_rev_growth_pp
+    theta: 0.20
+    d: 1
+    sigma: 0.10
+  inventory_cost_divergence:
+    measure: inv_minus_cogs_growth_pp
+    theta: 0.20
+    d: 1
+    sigma: 0.10
+  gross_net_margin_divergence:
+    measure: gross_net_margin_gap_pp
+    theta: 0.02
+    d: 1
+    sigma: 0.02
+  nonrecurring_profit_dependence:
+    measure: nonrecurring_over_netprofit
+    theta: 0.30
+    d: 1
+    sigma: 0.20
+  goodwill_net_assets_pressure:
+    measure: goodwill_over_equity
+    theta: 0.20
+    d: 1
+    sigma: 0.10
+  short_term_solvency_pressure:
+    measure: short_debt_over_cash
+    theta: 1.0
+    d: 1
+    sigma: 0.5
+  impairment_loss_surge:
+    measure: impairment_yoy_growth
+    theta: 1.0
+    d: 1
+    sigma: 1.0

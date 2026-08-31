@@ -55,6 +55,7 @@ data/private/
 # Generated model outputs may contain endpoint metadata
 results/raw/*
 !results/raw/.gitkeep
+results/tables/*.json
 
 # Streamlit secrets
 .streamlit/

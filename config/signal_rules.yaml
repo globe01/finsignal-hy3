@@ -1,0 +1,56 @@
+# 八类目标异常规则（对应方案 §3.3 / §5.2）
+# 阈值仅在开发集调整，测试集运行前冻结（方案 §3.3、§8.4）。
+signals:
+  cashflow_profit_divergence:
+    name: 经营现金流与净利润背离
+    metric_keys: [cfo, net_profit]
+    metric_names: [经营活动现金流量净额, 净利润]
+    formula_ids: [cfo_over_netprofit]
+    threshold_text: 经营现金流/净利润连续两年低于0.5，且净利润为正
+  receivables_revenue_divergence:
+    name: 应收账款与营业收入背离
+    metric_keys: [accounts_receivable, revenue]
+    metric_names: [应收账款, 营业收入]
+    formula_ids: [ar_minus_rev_growth]
+    threshold_text: 应收账款增速减营业收入增速不低于20个百分点
+  inventory_cost_divergence:
+    name: 存货与营业成本背离
+    metric_keys: [inventory, cogs]
+    metric_names: [存货, 营业成本]
+    formula_ids: [inv_minus_cogs_growth]
+    threshold_text: 存货增速减营业成本增速不低于20个百分点
+  gross_net_margin_divergence:
+    name: 毛利率与净利率背离
+    metric_keys: [revenue, cogs, net_profit]
+    metric_names: [营业收入, 营业成本, 净利润]
+    formula_ids: [gross_net_margin_gap]
+    threshold_text: 毛利率上升而净利率下降幅度不低于2个百分点
+  nonrecurring_profit_dependence:
+    name: 非经常性损益依赖
+    metric_keys: [nonrecurring, net_profit]
+    metric_names: [非经常性损益, 净利润]
+    formula_ids: [nonrecurring_over_netprofit]
+    threshold_text: 非经常性损益绝对值占净利润比例不低于30%
+  goodwill_net_assets_pressure:
+    name: 商誉占净资产压力
+    metric_keys: [goodwill, equity]
+    metric_names: [商誉, 所有者权益]
+    formula_ids: [goodwill_over_equity]
+    threshold_text: 商誉占所有者权益比例不低于20%
+  short_term_solvency_pressure:
+    name: 短期偿债压力
+    metric_keys: [current_assets, current_liabilities, short_borrow, cash]
+    metric_names: [流动资产, 流动负债, 短期借款, 货币资金]
+    formula_ids: [current_ratio, short_debt_over_cash]
+    threshold_text: 流动比率低于1，且短期借款/货币资金高于1
+  impairment_loss_surge:
+    name: 减值损失激增
+    metric_keys: [impairment, total_profit]
+    metric_names: [减值损失, 利润总额]
+    formula_ids: [impairment_yoy_growth, impairment_over_totalprofit]
+    threshold_text: 减值损失同比增幅不低于100%，且占利润总额绝对值不低于10%
+
+# other 不进入主召回/精确率（方案 §3.4）
+other:
+  name: 枚举外合理发现
+  in_main_metrics: false
