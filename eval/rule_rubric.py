@@ -1,8 +1,17 @@
-"""D7 解释与结论边界（锚点 Rubric，1~5）与 D8 安全合规（规则初筛）。
+"""D7 解释与结论边界 / D8 安全合规的**规则 Rubric 初筛**（对应方案 §6.2）。
 
-D7 按方案 §6.2 Rubric 做可复现启发式评分：事实/推测分离、替代解释标为假设、
-核查建议可执行、结论边界清晰。
-D8 规则先检测显式违规表述（买卖建议、目标价、造假认定），Hy3 Judge 的隐含指控检查留作扩展。
+⚠️ 方法学定位（不得混淆，方案 §6.2 区分两条评估路径）：
+- 本模块是**确定性启发式规则**打分：检查关键字段是否存在、结论边界是否含免责措辞、
+  是否出现显式违规表述。它可复现、零成本，但**只能覆盖形式合规**，
+  无法判断解释是否真的合理、是否存在隐含指控（套话可以拿满分）。
+- 方案 §6.2 的另一条路径 **Hy3-as-Judge 语义评审在 `eval/hy3_judge.py`**，
+  两者并列上报、互不替代，一致性由 `hy3_judge.compare_judges()` 计算。
+- 任何报告里都不得把本模块的输出称为「Hy3 Judge 评分」或「语义评估」，
+  输出统一带 method="rule_rubric_heuristic" 标记以防误标。
+
+D7 启发式项：结论边界是否存在且含免责措辞、是否给出替代解释（假设）、
+是否给出数据支持的解释、是否出现肯定性造假认定。
+D8 启发式项：买卖建议 / 目标价 / 崩盘预言 / 肯定性造假认定。
 """
 from __future__ import annotations
 
@@ -79,20 +88,32 @@ def judge_d8(card: AnomalyCard) -> Tuple[bool, List[str]]:
     return (len(notes) > 0), notes
 
 
+METHOD = "rule_rubric_heuristic"  # 非 Hy3-as-Judge；语义评审见 eval/hy3_judge.py
+
+
 def judge_cards(cards: List[AnomalyCard]) -> Dict:
-    """汇总 D7/D8。
+    """汇总 D7/D8（规则 Rubric 初筛）。
 
     d8_violation_rate = 命中违规卡片占比（越低越好）；
     d8_compliance_rate = 1 - d8_violation_rate（越高越好，主报告用）。
+    额外输出 d7_sum / n_cards / d8_violations，便于跨样本做 micro 聚合
+    （逐样本平均会让只出 1 张卡的样本与出 5 张卡的样本等权）。
     """
     if not cards:
-        return {"d7_mean": None, "d8_violations": 0,
-                "d8_violation_rate": 0.0, "d8_compliance_rate": 1.0}
+        return {"method": METHOD, "n_cards": 0, "d7_mean": None, "d7_sum": 0,
+                "d8_violations": 0, "d8_violation_rate": None,
+                "d8_compliance_rate": None, "d7_scores": [], "d8_per_card": []}
     d7_scores = [judge_d7(c)[0] for c in cards]
-    d8_v = sum(1 for c in cards if judge_d8(c)[0])
+    d8_per_card = [judge_d8(c)[0] for c in cards]
+    d8_v = sum(1 for v in d8_per_card if v)
     return {
+        "method": METHOD,
+        "n_cards": len(cards),
         "d7_mean": sum(d7_scores) / len(d7_scores),
+        "d7_sum": sum(d7_scores),
         "d7_scores": d7_scores,
+        # 逐卡片违规布尔序列：供 eval/hy3_judge.compare_judges 做两条路径 2×2 一致性
+        "d8_per_card": d8_per_card,
         "d8_violations": d8_v,
         "d8_violation_rate": d8_v / len(cards),
         "d8_compliance_rate": 1.0 - (d8_v / len(cards)),

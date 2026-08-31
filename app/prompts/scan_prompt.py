@@ -6,9 +6,16 @@
 - 明确禁止把异常信号表述为财务造假或投资建议；
 - 通过「完整示例」锚定 JSON 字段形态，配合 schema 自纠正重试（方案 §5.1）；
 - 输出严格 JSON（顶层 {"cards": [...]}），由调用层用 JSON 模式约束。
+
+两处与评估器对齐的修正（否则指标会被 prompt 缺陷污染，而非反映模型能力）：
+1. `calculation.formula_id` 必须取自 config/formula_registry.yaml，注册表目录直接
+   写进 prompt（原示例用的 `growth_delta` 并不在注册表中，会让 D2 第 1 步必然失败）；
+2. `source_record_id` 必须回填输入数据里给出的 `<row_id>_<年度>` 形式（如 BS_R03_2024），
+   原示例写的是 `bs_2023` 这类自造 ID，无法回表，会让 D3 严格可追溯必然为 0。
 """
 from __future__ import annotations
 
+from app.formulas import formula_catalog_text
 from app.schema import SIGNAL_TYPES
 
 # 八类异常的中文释义，提供给模型作为语义锚点
@@ -23,23 +30,45 @@ SIGNAL_GLOSSARY = """\
 - impairment_loss_surge：减值损失激增（减值损失同比增幅≥100% 且占利润总额绝对值≥10%）
 """
 
+EVIDENCE_RULES = """\
+证据字段填写规则（务必严格遵守，否则无法回表核对）：
+- source_record_id：必须写成输入表格里的 `<row_id>_<年度>`，例如 BS_R03_2024、IS_R02_2023；
+- source_row：取 row_id 里的数字（BS_R03 → 3）；
+- source_column 与 period：都写年度，例如 "2024"；
+- statement：写 income / balance / cashflow（分别对应利润表 / 资产负债表 / 现金流量表）；
+- source_file：写输入中该表标注的文件名，例如 balance_sheet.csv；
+- metric_key：写英文科目键（如 accounts_receivable、revenue、cfo、net_profit）；
+- 不要自造 ID，也不要凭空补全没在输入里出现的单元格。
+"""
+
+FORMULA_RULES = """\
+calculation 填写规则：
+- formula_id 必须从下列注册表中选择（不得自造公式名，也不得混用其它信号的公式）：
+{catalog}
+- operand_fact_ids 必须列出复算所需的全部 fact_basis 条目 id；
+  同比类公式（需要 t-1 与 t 两个年度）必须把两年的操作数都写进 fact_basis；
+- reported_result 用小数表示比率：0.25 表示 25 个百分点，不要写成 25；
+- 若无法用注册表中的公式表达，则省略 calculation 字段，不要硬凑。
+"""
+
 # 完整输出示例，作为字段形态锚点（注意每个 fact_basis 都带全部字段）
 EXAMPLE_BLOCK = """\
-输出示例（严格照此结构，字段一个不能少，数值用输入里真实存在的数字）：
+输出示例（严格照此结构，字段一个不能少；示例中的数字仅示形态，必须替换为输入里真实存在的数字）：
 
 {"cards": [
   {
     "signal_type": "receivables_revenue_divergence",
     "signal_name": "应收账款增速显著高于营业收入增速",
     "severity": "high",
-    "periods": ["2023", "2024"],
+    "periods": ["2024"],
     "fact_basis": [
-      {"fact_id": "ar_2023", "metric_key": "accounts_receivable", "metric_name": "应收账款", "period": "2023", "value": 210000000, "unit": "元", "source_record_id": "bs_2023", "source_file": "资产负债表", "source_row": 6, "source_column": "2023", "statement": "资产负债表"},
-      {"fact_id": "ar_2024", "metric_key": "accounts_receivable", "metric_name": "应收账款", "period": "2024", "value": 310000000, "unit": "元", "source_record_id": "bs_2024", "source_file": "资产负债表", "source_row": 6, "source_column": "2024", "statement": "资产负债表"},
-      {"fact_id": "rev_2023", "metric_key": "revenue", "metric_name": "营业收入", "period": "2023", "value": 1120000000, "unit": "元", "source_record_id": "pl_2023", "source_file": "利润表", "source_row": 2, "source_column": "2023", "statement": "利润表"}
+      {"fact_id": "ar_2023", "metric_key": "accounts_receivable", "metric_name": "应收账款", "period": "2023", "value": 168, "unit": "元", "source_record_id": "BS_R03_2023", "source_file": "balance_sheet.csv", "source_row": 3, "source_column": "2023", "statement": "balance"},
+      {"fact_id": "ar_2024", "metric_key": "accounts_receivable", "metric_name": "应收账款", "period": "2024", "value": 250, "unit": "元", "source_record_id": "BS_R03_2024", "source_file": "balance_sheet.csv", "source_row": 3, "source_column": "2024", "statement": "balance"},
+      {"fact_id": "rev_2023", "metric_key": "revenue", "metric_name": "营业收入", "period": "2023", "value": 1120, "unit": "元", "source_record_id": "IS_R02_2023", "source_file": "income_statement.csv", "source_row": 2, "source_column": "2023", "statement": "income"},
+      {"fact_id": "rev_2024", "metric_key": "revenue", "metric_name": "营业收入", "period": "2024", "value": 1254, "unit": "元", "source_record_id": "IS_R02_2024", "source_file": "income_statement.csv", "source_row": 2, "source_column": "2024", "statement": "income"}
     ],
-    "calculation": {"formula_id": "growth_delta", "operand_fact_ids": ["ar_2023", "ar_2024", "rev_2023"], "reported_result": 0.27, "readable": "应收账款增速约27% 高于营收增速约12%"},
-    "supported_explanation": "应收账款由2023年2.1亿增至2024年3.1亿（增速约47%），同期营收增速约12%，背离明显。",
+    "calculation": {"formula_id": "ar_minus_rev_growth", "operand_fact_ids": ["ar_2023", "ar_2024", "rev_2023", "rev_2024"], "reported_result": 0.37, "readable": "应收账款增速约49% 减去营业收入增速约12%，差约37个百分点"},
+    "supported_explanation": "应收账款由2023年168增至2024年250（增速约49%），同期营业收入增速约12%，两者背离约37个百分点。",
     "possible_explanations": ["放宽信用政策冲收入", "下游回款变慢", "季节性备货导致单纯时点偏高"],
     "next_checks": ["核对账龄结构与坏账计提", "比对前五大客户回款", "查看期后回款情况"],
     "conclusion_boundary": "仅为值得关注的信号，不能据此认定财务造假，也不构成投资建议。"
@@ -77,10 +106,15 @@ USER_TEMPLATE = """以下是公司「{company}」连续 {years} 年的结构化�
 def build_scan_messages(company: str, years: str, data_text: str) -> list[dict]:
     system_content = (
         SYSTEM_PROMPT_HEAD
+        + "（合法取值：" + " / ".join(SIGNAL_TYPES) + "）\n"
         + SIGNAL_GLOSSARY
         + "\n"
         + SYSTEM_PROMPT_TAIL
-        + "\n\n完整输出示例（照此结构）：\n"
+        + "\n\n"
+        + EVIDENCE_RULES
+        + "\n"
+        + FORMULA_RULES.format(catalog=formula_catalog_text())
+        + "\n"
         + EXAMPLE_BLOCK
     )
     return [

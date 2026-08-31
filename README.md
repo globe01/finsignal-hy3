@@ -23,7 +23,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - **开放分析可评审**：使用锚点式 Rubric 评价异常重要性、替代解释、核查建议和结论边界。
 - **会计一致的异常注入**：通过配套传导和报表恒等式检查构造可控评测样本。
 - **阴性与对抗验证**：检查模型是否强行找问题，以及评估器能否识别伪造证据、错误公式和术语堆砌。
-- **评估器消融**：对比纯 Hy3 Judge、纯规则和混合评估器与人工标注的一致性。
+- **评估器消融**：对比 **Hy3 语义评审**（`eval/hy3_judge.py`，逐卡片锚定 Rubric 打分）与 **规则 Rubric**（`eval/rule_rubric.py`，确定性启发式）两条路径的一致性（`compare_judges`）。两者都不是 D7/D8 的真值——规则路径会被套话骗过，Hy3 路径有同族自我偏好；真值需人工标注（待补）。
 
 ## 目标异常类型
 
@@ -58,17 +58,20 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
                     │
           ┌─────────┴─────────┐
           ▼                   ▼
-  规则评估层             Hy3 Judge 层
-  · 原始数值回表         · 重要性排序
-  · 公式安全复算         · 解释质量
-  · 证据定位检查         · 过度推断
-  · 漏报/误报比对        · 安全边界
+  规则评估层             Hy3 语义评审层
+  （确定性启发式）       （eval/hy3_judge.py，锚定 Rubric）
+  · 原始数值回表         · 解释质量（证据锚定/替代解释/可核查性/边界）
+  · 公式安全复算         · 过度推断（隐含指控等只有语义层能查的项）
+  · 证据定位检查         · 安全边界
+  · 漏报/误报比对
           └─────────┬─────────┘
                     ▼
-             评测结果与归因报告
+             评测结果与归因报告（两条路径并列上报 + 一致性，不互相替代）
 ~~~
 
-默认应用链路不会把规则候选答案提供给 Hy3。规则引擎只位于评估侧，避免模型变成对已知答案的简单确认。
+> **方法学红线**：规则评估层与 Hy3 语义评审层是**并列的两条评估路径**，都不是 D7/D8 的真值。
+> 默认应用链路不会把规则候选答案提供给 Hy3；规则引擎只位于评估侧，避免模型变成对已知答案的简单确认。
+> Hy3 语义评审**看不到金标准**，只喂「财务数据原文 + 待评卡片」（`eval/hy3_judge.py` 顶部说明）。
 
 ## 核心评估指标
 
@@ -88,27 +91,29 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 
 ## 项目进度
 
-当前处于方案确认和初稿开发阶段。
+当前进入**实现与验证阶段**（Phase 1 评测正确性已锁定，离线自检 + 单元测试全绿）。
 
-- [x] 完成选题、范围约束和评估方法设计
-- [x] 完成系统架构与时间规划
-- [ ] 整理制造业公司结构化财务数据
-- [ ] 实现 Hy3 调用与 JSON Schema
-- [ ] 实现四类重点异常注入模板
-- [ ] 实现规则评估器和 Hy3 Judge
-- [ ] 完成有效性实验与人工一致性验证
-- [ ] 完成 Streamlit Demo、分析报告和结果表
+- [x] 选题、范围约束和评估方法设计（漏报敏感型主指标 + 八维评估）
+- [x] 系统架构与时间规划
+- [x] Hy3 调用层（TokenHub OpenAI 兼容）与 JSON Schema 容错解析
+- [x] 注入引擎（会计恒等式自洽）+ 四层金标准（注入元数据独立真值）
+- [x] 规则评估器 D1–D8 + 微平均聚合（输出分子/分母，N/A 不记 0）
+- [x] Hy3-as-Judge 语义评审模块（方案 §5.6，与规则 Rubric 并列，非替代）
+- [x] 离线自检（`--offline` 零依赖）+ 190 项 pytest 单元测试
+- [ ] 接入真实上市公司公开数据（Phase 3，当前样本为合成注入）
+- [ ] 人工标注对照与 D1/D7 一致性校验（需 `docs/annotation_guide.md`）
+- [ ] Streamlit Demo 与交互式看板（Phase 5）
 
 完整方案见 [docs/proposal.md](docs/proposal.md)。
 
 ## 快速开始
 
-> 当前仓库处于初稿开发阶段，以下接口将在首个可运行版本中保持兼容；具体命令会随实现进度更新。
+> 评测器（`eval/run_eval.py`）已实现且离线/在线均可用；单公司扫描与 Web Demo 为后续阶段。
 
 ### 1. 环境要求
 
-- Python 3.10+
-- 可访问的 Hy3 OpenAI-compatible API
+- Python 3.10+（仓库已用 3.13 验证）
+- 可访问的 Hy3 OpenAI-compatible API（腾讯云 TokenHub）
 
 ### 2. 安装依赖
 
@@ -123,28 +128,34 @@ pip install -r requirements.txt
 
 ### 3. 配置环境变量
 
-复制 .env.example 为 .env，并填写本地配置：
+复制 `.env.example` 为 `.env`，并填写本地配置（仅本地保留，不入库）：
 
 ~~~env
-HY3_BASE_URL=https://your-hy3-endpoint.example/v1
+HY3_BASE_URL=https://tokenhub.tencentmaas.com/v1
 HY3_API_KEY=your-api-key
 HY3_MODEL=hy3
 ~~~
 
-请勿将 .env、API Key 或其他密钥提交到仓库。
-
-### 4. 计划中的运行方式
+### 4. 运行方式
 
 ~~~bash
-# CLI 异常扫描
-python -m app.cli --input data/base/example.csv
+# 离线自检：校验评测器数学与证据链路，不耗 API、不需要 Key
+python -m eval.run_eval --offline
 
-# 完整评测
-python -m eval.run_eval
+# 真实评测（默认 temperature=0；建议跑 3 次取均值/区间，见 §6）
+python -m eval.run_eval --runs 3
 
-# Web Demo
-streamlit run app/streamlit_app.py
+# 仅冒烟前 3 个样本
+python -m eval.run_eval --limit 3
+
+# 额外启用 Hy3 语义评审（每张卡片 1 次调用，与规则 Rubric 并列上报）
+python -m eval.run_eval --limit 3 --hy3-judge
+
+# 期间严格匹配敏感性分析
+python -m eval.run_eval --period-mode exact
 ~~~
+
+> 单公司扫描 CLI（`app.cli`）与 Streamlit 交互看板（`app/streamlit_app.py`）属于后续阶段，尚未实现。
 
 ## 计划中的仓库结构
 

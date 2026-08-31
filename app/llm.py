@@ -26,7 +26,8 @@ load_dotenv()
 MAX_CONCURRENCY = 5
 MAX_RETRIES = 2
 
-_RETRYABLE_HINTS = ("rate", "429", "timeout", "timed out", "503", "500", "connection")
+_RETRYABLE_HINTS = ("rate", "429", "timeout", "timed out", "503", "502", "500",
+                     "connection", "reset", "econn")
 
 
 @dataclass
