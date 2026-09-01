@@ -306,6 +306,16 @@ def evaluate_card_d2(card: AnomalyCard, company, index: int = 0) -> D2Result:
         res.issues.append(f"fact_basis 缺少操作数科目：{sorted(missing)}")
         return res
 
+    # 步骤 4&5（期间匹配 + 算术复算）依赖结构化 Company（company.years / 注册表复算）。
+    # 自由文本 / 未解析 CSV 的 Demo 场景没有 Company：只保留前 3 步「公式结构检查」，
+    # 期间/算术复核记为 N/A，绝不因访问 company.years 而崩溃。
+    if company is None:
+        res.checks["periods_ok"] = None
+        res.checks["arithmetic_ok"] = None
+        res.status = "not_applicable"
+        res.issues.append("无结构化 Company，跳过期间/算术复算（仅公式结构检查）")
+        return res
+
     # 步骤 4：期间是否满足 period_mode
     t = _target_period(card, company)
     res.period_used = t
@@ -381,9 +391,21 @@ def evaluate_d2(cards: List[AnomalyCard], company=None) -> Dict:
     hits = sum(1 for r in scored if r.status == "pass")
     step_hits = {k: sum(1 for r in scored if r.checks.get(k) is True) for k in D2_CHECKS}
     step_total = {k: sum(1 for r in scored if r.checks.get(k) is not None) for k in D2_CHECKS}
+    # 公式结构检查（前 3 步）汇总：自由文本 / 未解析 CSV（company=None）场景的主要可报指标
+    struct_results = [r for r in results if r.formula_id is not None]
+    d2_struct_total = len(struct_results)
+    d2_struct_pass = sum(
+        1 for r in struct_results
+        if r.checks.get("formula_known") is True
+        and r.checks.get("signal_match") is True
+        and r.checks.get("operands_ok") is True
+    )
     return {
+        "d2_mode": "full" if company is not None else "structure_only",
         "d2_hits": hits,
         "d2_total": len(scored),
+        "d2_struct_total": d2_struct_total,
+        "d2_struct_pass": d2_struct_pass,
         "d2_rate": (hits / len(scored)) if scored else None,
         "d2_not_applicable": sum(1 for r in results if r.status == "not_applicable"),
         "d2_scale_adjusted": sum(1 for r in scored if r.scale_adjusted),

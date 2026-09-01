@@ -153,7 +153,7 @@ python -m eval.run_eval --runs 3 --hy3-judge   # 额外启用 Hy3 语义评审�
 - [x] **离线自检 + 单元测试**：`--offline` + 195 项 pytest ✅ 已实现
 - [ ] **D6 深度判定**：当前为信号级严重度代理；应逐卡片比对模型 severity 与金标准 severity
 - [ ] **样本扩容与真实数据**：当前 40 合成样本已覆盖阴性/三档/边界/长文本/术语/年份错置；Phase 3 接入真实公开数据（synthetic/derived/real 三类区分）并扩至 ≥50 样本
-- [ ] **可视化**：`app/streamlit_app.py` 交互式看板（方案 §13）待建，用于人工复核 `cards_full`
+- [x] **可视化（最小 Demo）**：`app/streamlit_app.py` Streamlit 交互看板已实现——上传 CSV / 粘贴文本 → 调 Hy3 → 卡片展示 + 本地 D1/D2/D3/D8 结构校验 + D7 规则 Rubric + 免责声明；**仅为最小交互 Demo，不替代 `python -m eval.run_eval` 批量、可复核评测**，完整 D2 算术复算与 D3 回表需结构化源数据（见离线评测与 `results/README.md`）
 - [x] **人工一致性材料**：`docs/annotation_guide.md` + `eval/validity/agreement.py` + `annotations_template.csv` 已就位（Cohen's/Fleiss κ、Spearman、重复评估波动）；**标注数据待补**，agreement 当前 `PENDING`，不引用任何编造数值（规则 Rubric / Hy3-as-Judge 与人工标注只报一致性 agreement，不报准确性 accuracy）
 
 ---

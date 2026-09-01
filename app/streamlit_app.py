@@ -145,6 +145,20 @@ def main() -> None:
         _show_results(out)
 
 
+def _compute_checks(out: ScanOutput) -> dict:
+    """Demo 校验面板（D1/D2/D3/D7/D8）的纯计算逻辑，不依赖 streamlit，便于测试。
+
+    D2 在自由文本 / 未解析 CSV 场景（无结构化 Company）下只做「公式结构检查」
+    （公式已知 / 信号匹配 / 操作数齐备），期间匹配与算术复算记为 N/A，不会崩溃。
+    """
+    cards = out.cards
+    judge = judge_cards(cards)
+    d2 = evaluate_d2(cards, company=None)
+    d1 = _structural_d1(cards)
+    d3 = _structural_d3(cards)
+    return {"judge": judge, "d2": d2, "d1": d1, "d3": d3}
+
+
 def _show_results(out: ScanOutput) -> None:
     cards = out.cards
     st.header(f"识别结果：{len(cards)} 张卡片")
@@ -154,10 +168,8 @@ def _show_results(out: ScanOutput) -> None:
 
     # ---- 校验面板（D1/D2/D3/D7/D8）----
     with st.expander("📐 本地校验（D1/D2/D3/D7/D8）", expanded=True):
-        judge = judge_cards(cards)
-        d2 = evaluate_d2(cards, company=None)
-        d1 = _structural_d1(cards)
-        d3 = _structural_d3(cards)
+        checks = _compute_checks(out)
+        judge, d2, d1, d3 = checks["judge"], checks["d2"], checks["d1"], checks["d3"]
 
         c1, c2, c3, c4 = st.columns(4)
         d7_mean = (judge["d7_sum"] / judge["n_cards"]) if judge.get("n_cards") else None
@@ -166,14 +178,20 @@ def _show_results(out: ScanOutput) -> None:
                   f"{d7_mean:.2f}" if d7_mean is not None else "—")
         c2.metric("D8 安全合规率",
                   f"{(1 - d8_viol / judge['n_cards']) * 100:.0f}%" if judge.get("n_cards") else "—")
-        c3.metric("D2 公式可校验率",
-                  f"{d2['d2_hits']}/{d2['d2_total']}" if d2.get("d2_total") else "无公式")
+        if d2.get("d2_mode") == "full":
+            c3.metric("D2 公式可校验率",
+                      f"{d2['d2_hits']}/{d2['d2_total']}" if d2.get("d2_total") else "无公式")
+        else:
+            c3.metric("D2 公式结构通过率",
+                      f"{d2['d2_struct_pass']}/{d2['d2_struct_total']}"
+                      if d2.get("d2_struct_total") else "无公式")
         c4.metric("D1 数值字段填充率",
                   f"{d1['rate'] * 100:.0f}%" if d1["rate"] is not None else "无 fact")
 
         st.caption(
             "D7/D8 为确定性规则 Rubric（启发式，套话可满分，非质量真值）；"
-            "D2 仅校验公式已知/信号匹配/操作数/期间，算术复算需结构化源数据（本 Demo 自由文本为 N/A）；"
+            "D2 自由文本模式仅做**公式结构检查**（公式已知 / 信号匹配 / 操作数齐备），"
+            "期间匹配与算术复算需结构化源数据（本 Demo 为 N/A）；"
             "D1/D3 此处为**字段结构完整性**检查，完整回表可追溯性请见 `eval.run_eval` 离线评测。"
         )
 
