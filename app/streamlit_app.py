@@ -24,7 +24,7 @@ import os
 import pandas as pd
 import streamlit as st
 
-from app.scan import SAMPLE
+from app.sample_data import SAMPLE
 from app.schema import AnomalyCard, ScanOutput
 from eval.fact_eval import D3_FIELDS
 from eval.formula_eval import evaluate_d2

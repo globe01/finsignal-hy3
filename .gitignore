@@ -56,6 +56,10 @@ data/private/
 # 仅放行以下「脱敏、可复核」的评测产物；其余一律忽略（含 .env、密钥、单次运行原始输出）。
 # 这些放行文件由 `python -m eval.run_eval --offline --runs 3` 确定性生成，
 # 不含任何 API Key / endpoint / 私有数据，供报告引用与人工复核。
+
+# 在线（Hy3 真实调用）原始产物：本地留档、不入库。
+# 仅作文档 §5 分析的原始凭证，repo 内 results/ 下放行的 7 个文件保持离线自检锚点。
+results/online_local/
 results/raw/*
 !results/raw/.gitkeep
 !results/raw/cases_run1.json

@@ -99,7 +99,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - [x] 注入引擎（会计恒等式自洽）+ 四层金标准（注入元数据独立真值）
 - [x] 规则评估器 D1–D8 + 微平均聚合（输出分子/分母，N/A 不记 0）
 - [x] Hy3-as-Judge 语义评审模块（方案 §5.6，与规则 Rubric 并列，非替代）
-- [x] 离线自检（`--offline` 零依赖）+ 195 项 pytest 单元测试
+- [x] 离线自检（`--offline` 零依赖）+ 203 项 pytest 单元测试
 - [ ] 接入真实上市公司公开数据（Phase 3，当前样本为合成注入）
 - [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 标注模板；标注数据待补）
 - [x] Streamlit 最小可用 Demo（`app/streamlit_app.py`，上传/粘贴 → Hy3 → 卡片 + D1/D2/D3/D8 校验）
