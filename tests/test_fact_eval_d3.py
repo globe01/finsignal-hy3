@@ -1,7 +1,9 @@
 """D1 数值准确性 与 D3 严格证据可追溯（方案 §5.3、§6.1）。
 
-关键断言：D3 必须卡到记录级——只有 source_record_id 回表成功且 8 个字段全对才算通过。
+关键断言：D3 必须卡到记录级——只有 source_record_id 回表成功且 10 个字段全对才算通过。
 「科目名和年份存在」这种降级定位只能算 D1 命中，不得计入 D3。
+10 字段：source_record_id / source_file / source_row / source_column / statement /
+        metric_key / metric_name / period / value / unit。
 """
 from __future__ import annotations
 
@@ -108,6 +110,58 @@ def test_metric_key_recovered_from_chinese_name(clean_company, record_index):
     rec = _rec(record_index, "BS_R03_2024")
     r = eval_facts(_card([_fact_from_record(rec, metric_key=None)]), clean_company)
     assert r["d3_strict_hits"] == 1
+
+
+def test_missing_metric_name_fails_d3(clean_company, record_index):
+    """metric_name 缺失 → 10 字段不齐，D3 严格追溯判不通过（即便 metric_key 在）。"""
+    rec = _rec(record_index, "BS_R03_2024")
+    fact = _fact_from_record(rec, metric_name=None)
+    r = eval_facts(_card([fact]), clean_company)
+    assert r["d3_strict_hits"] == 0
+    assert r["checks"][0]["field_ok"]["metric_name"] is False
+    # metric_key 仍可由 metric_name 的反查兜底命中，单独验证不影响定位
+    assert r["checks"][0]["field_ok"]["metric_key"] is True
+
+
+def test_missing_unit_fails_d3(clean_company, record_index):
+    """unit 缺失 → 10 字段不齐，D3 严格追溯判不通过。"""
+    rec = _rec(record_index, "BS_R03_2024")
+    fact = _fact_from_record(rec, unit=None)
+    r = eval_facts(_card([fact]), clean_company)
+    assert r["d3_strict_hits"] == 0
+    assert r["checks"][0]["field_ok"]["unit"] is False
+
+
+def test_wrong_unit_fails_d3(clean_company, record_index):
+    """unit 写错（如 CNY / 万元 与记录的「元」不一致）→ D3 严格追溯判不通过。"""
+    rec = _rec(record_index, "BS_R03_2024")
+    for bad_unit in ("CNY", "万元", "USD"):
+        fact = _fact_from_record(rec, unit=bad_unit)
+        r = eval_facts(_card([fact]), clean_company)
+        assert r["d3_strict_hits"] == 0, bad_unit
+        assert r["checks"][0]["field_ok"]["unit"] is False, bad_unit
+
+
+def test_all_ten_fields_required_for_strict(clean_company, record_index):
+    """逐一剥离 10 字段中的任意一个（保留 source_record_id 回表成功），都应使 D3 失败。"""
+    rec = _rec(record_index, "BS_R03_2024")
+    optional = {
+        "source_file": dict(source_file=None),
+        "source_row": dict(source_row=None),
+        "source_column": dict(source_column=None),
+        "statement": dict(statement=None),
+        # metric_key 缺失时可由 metric_name 反查兜底，故同时清 metric_name 才能真正剥离
+        "metric_key": dict(metric_key=None, metric_name=None),
+        "metric_name": dict(metric_name=None),
+        "period": dict(period=None),
+        "value": dict(value=None),
+        "unit": dict(unit=None),
+    }
+    for field_name, override in optional.items():
+        r = eval_facts(_card([_fact_from_record(rec, **override)]), clean_company)
+        assert r["d3_strict_hits"] == 0, field_name
+        assert r["resolved_by_record_id"] == 1, field_name
+        assert r["checks"][0]["field_ok"].get(field_name) is False, field_name
 
 
 def test_unresolvable_fact_is_counted(clean_company):

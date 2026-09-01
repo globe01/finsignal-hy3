@@ -1,0 +1,307 @@
+{
+  "n_cases": 40,
+  "n_cases_scored": 40,
+  "n_cases_excluded": 0,
+  "aggregation": "micro",
+  "TP": 42,
+  "FP": 0,
+  "FN": 0,
+  "n_gold": 42,
+  "MRhigh": {
+    "value": 0.0,
+    "num": 0,
+    "den": 18
+  },
+  "P": {
+    "value": 1.0,
+    "num": 42,
+    "den": 42
+  },
+  "R": {
+    "value": 1.0,
+    "num": 42,
+    "den": 42
+  },
+  "Rw": {
+    "value": 1.0,
+    "num": 96,
+    "den": 96
+  },
+  "F1": {
+    "value": 1.0,
+    "num": null,
+    "den": null
+  },
+  "MRhigh_macro": {
+    "value": 0.0,
+    "n_cases": 14
+  },
+  "P_macro": {
+    "value": 1.0,
+    "n_cases": 24
+  },
+  "R_macro": {
+    "value": 1.0,
+    "n_cases": 24
+  },
+  "Rw_macro": {
+    "value": 1.0,
+    "n_cases": 24
+  },
+  "period_exact_tp": 42,
+  "period_shifted_tp": 0,
+  "fn_modes": {},
+  "target_only": {
+    "n_cases": 40,
+    "n_cases_scored": 40,
+    "n_cases_excluded": 0,
+    "aggregation": "micro",
+    "TP": 24,
+    "FP": 18,
+    "FN": 0,
+    "n_gold": 24,
+    "MRhigh": {
+      "value": 0.0,
+      "num": 0,
+      "den": 5
+    },
+    "P": {
+      "value": 0.5714285714285714,
+      "num": 24,
+      "den": 42
+    },
+    "R": {
+      "value": 1.0,
+      "num": 24,
+      "den": 24
+    },
+    "Rw": {
+      "value": 1.0,
+      "num": 47,
+      "den": 47
+    },
+    "F1": {
+      "value": 0.7272727272727273,
+      "num": null,
+      "den": null
+    },
+    "MRhigh_macro": {
+      "value": 0.0,
+      "n_cases": 5
+    },
+    "P_macro": {
+      "value": 0.65625,
+      "n_cases": 24
+    },
+    "R_macro": {
+      "value": 1.0,
+      "n_cases": 24
+    },
+    "Rw_macro": {
+      "value": 1.0,
+      "n_cases": 24
+    },
+    "period_exact_tp": 24,
+    "period_shifted_tp": 0,
+    "fn_modes": {}
+  },
+  "exact_period": {
+    "n_cases": 40,
+    "n_cases_scored": 40,
+    "n_cases_excluded": 0,
+    "aggregation": "micro",
+    "TP": 42,
+    "FP": 0,
+    "FN": 0,
+    "n_gold": 42,
+    "MRhigh": {
+      "value": 0.0,
+      "num": 0,
+      "den": 18
+    },
+    "P": {
+      "value": 1.0,
+      "num": 42,
+      "den": 42
+    },
+    "R": {
+      "value": 1.0,
+      "num": 42,
+      "den": 42
+    },
+    "Rw": {
+      "value": 1.0,
+      "num": 96,
+      "den": 96
+    },
+    "F1": {
+      "value": 1.0,
+      "num": null,
+      "den": null
+    },
+    "MRhigh_macro": {
+      "value": 0.0,
+      "n_cases": 14
+    },
+    "P_macro": {
+      "value": 1.0,
+      "n_cases": 24
+    },
+    "R_macro": {
+      "value": 1.0,
+      "n_cases": 24
+    },
+    "Rw_macro": {
+      "value": 1.0,
+      "n_cases": 24
+    },
+    "period_exact_tp": 42,
+    "period_shifted_tp": 0,
+    "fn_modes": {}
+  },
+  "n_errors": 0,
+  "excluded_cases": [],
+  "D1_value_accuracy": {
+    "value": 1.0,
+    "num": 122,
+    "den": 122
+  },
+  "D3_strict_traceability": {
+    "value": 1.0,
+    "num": 122,
+    "den": 122
+  },
+  "D3_resolution": {
+    "by_source_record_id": 122,
+    "by_fallback": 0,
+    "unresolved": 0
+  },
+  "D3_field_rates": {
+    "source_record_id": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "source_file": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "source_row": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "source_column": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "statement": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "metric_key": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "metric_name": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "period": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "value": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    },
+    "unit": {
+      "value": 1.0,
+      "num": 122,
+      "den": 122
+    }
+  },
+  "D2_formula_correctness": {
+    "value": 1.0,
+    "num": 42,
+    "den": 42
+  },
+  "D2_not_applicable": 0,
+  "D2_scale_adjusted": 0,
+  "D2_step_rates": {
+    "formula_known": {
+      "value": 1.0,
+      "num": 42,
+      "den": 42
+    },
+    "signal_match": {
+      "value": 1.0,
+      "num": 42,
+      "den": 42
+    },
+    "operands_ok": {
+      "value": 1.0,
+      "num": 42,
+      "den": 42
+    },
+    "periods_ok": {
+      "value": 1.0,
+      "num": 42,
+      "den": 42
+    },
+    "arithmetic_ok": {
+      "value": 1.0,
+      "num": 42,
+      "den": 42
+    }
+  },
+  "D6_severity_agreement": {
+    "value": 1.0,
+    "num": 42,
+    "den": 42
+  },
+  "D7_rule_rubric_mean": {
+    "value": 5.0,
+    "num": 210,
+    "den": 42,
+    "method": "rule_rubric_heuristic"
+  },
+  "D8_compliance": {
+    "value": 1.0,
+    "violations": 0,
+    "den": 42,
+    "method": "rule_rubric_heuristic"
+  },
+  "n_cards_total": 42,
+  "n_other_cards": 0,
+  "injection_validity": {
+    "n_injected": 23,
+    "n_invalid": 0,
+    "n_identity_violation": 0,
+    "n_target_not_triggered": 0,
+    "n_period_mismatch": 2
+  },
+  "layer_counts": {
+    "injected_ground_truth": 23,
+    "rule_triggered": 1,
+    "expert_confirmed": 0,
+    "composite_signal": 18
+  },
+  "contaminated_negatives": 0,
+  "run_config": {
+    "offline": true,
+    "limit": null,
+    "period_mode": "overlap",
+    "temperature": 0,
+    "n_cases": 40,
+    "tag": "run2",
+    "hy3_judge": false
+  }
+}

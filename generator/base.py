@@ -107,6 +107,7 @@ class Company:
     income: Dict[str, Dict[int, float]] = field(default_factory=dict)
     balance: Dict[str, Dict[int, float]] = field(default_factory=dict)
     cashflow: Dict[str, Dict[int, float]] = field(default_factory=dict)
+    narrative: Optional[str] = None  # 可选管理层叙述/背景文本（对抗样本用，不参与复算）
 
     def get(self, statement: str, key: str, year: int) -> float:
         table = {"income": self.income, "balance": self.balance, "cashflow": self.cashflow}[statement]
@@ -231,6 +232,10 @@ def company_to_text(c: Company) -> str:
             row_no = int(rid.split("_R")[1])
             vals = ",".join(f"{table[metric_key][t]:.0f}" for t in y)
             lines.append(f"{rid},{row_no},{CN[metric_key]},{vals}")
+    if c.narrative:
+        lines.append("")
+        lines.append("=== 补充背景（管理层讨论与分析节选，仅供阅读，不参与数值复算）===")
+        lines.append(c.narrative)
     return "\n".join(lines)
 
 

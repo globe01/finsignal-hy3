@@ -11,9 +11,11 @@ from generator.inject import inject
 
 # 仅对“可注入”类型做阈下边界（强度很小，使其刚好低于 θ）
 _NEAR_THRESHOLD = {
-    "receivables_revenue_divergence": 0.5,   # 弱化到约一半强度
+    "receivables_revenue_divergence": 0.5,
+    "inventory_cost_divergence": 0.5,
     "goodwill_net_assets_pressure": 0.5,
-    "nonrecurring_profit_dependence": 0.5,
+    "gross_net_margin_divergence": 0.5,
+    "cashflow_profit_divergence": 0.5,
 }
 
 

@@ -59,33 +59,130 @@ INJECT_TYPES = [
     "cashflow_profit_divergence",
 ]
 
-_BOUNDARY_TYPES = ("receivables_revenue_divergence", "goodwill_net_assets_pressure")
+# 三档强度梯度（方案 §7.2）：各类型选取能稳定触发 低/中/高 的严重度强度。
+# 具体严重度标签由 severity.yaml 在注入后数据上复算，不在此硬编码。
+SEVERITY_STRENGTHS = {
+    "receivables_revenue_divergence": (0.8, 1.0, 2.0),
+    "inventory_cost_divergence": (0.8, 1.0, 2.0),
+    "goodwill_net_assets_pressure": (0.8, 1.0, 2.0),
+    "gross_net_margin_divergence": (0.6, 0.9, 2.0),
+    "cashflow_profit_divergence": (0.4, 0.8, 1.6),
+}
+
+# 长文本 / 术语堆砌对抗样本使用的「补充背景」段落。
+# 注意：这些文本只供模型阅读，不参与任何数值复算；段落里**刻意不写**异常数字，
+# 目的是测试模型在长文本干扰下是否仍能从结构化数据中发现异常（实测结果见在线评测）。
+_LONG_NARRATIVE = (
+    "公司本年度围绕主业推进产能扩张与产品结构升级，管理层认为行业景气度处于温和复苏通道。"
+    "报告期内公司持续加强应收账款与存货周转管理，经营性现金流受资本开支节奏影响有所波动。"
+    "公司严格执行会计政策，商誉减值测试采用收益法并结合宏观景气度进行审慎判断。"
+    "展望下一阶段，公司将在保持研发投入的同时优化费用投放效率，力争实现高质量增长。"
+    "董事会就利润分配、关联交易及内部控制等事项进行了审议，相关事项均履行了合规程序。"
+)
+
+_JARGON_NARRATIVE = (
+    "本报告基于 EBITDA 同比环比、经营性现金流净额与净利润的背离度、商誉占净资产比等衍生指标，"
+    "结合行业景气度下行周期中的营运资本周转天数、应收账款账龄结构及信用减值损失计提充分性，"
+    "运用杜邦分析拆解 ROE 变动，并参照可比公司 EV/EBITDA 与 PEG 进行相对估值交叉验证；"
+    "同时关注自由现金流贴现模型（DCF）中 WACC 与永续增长率的敏感性，"
+    "以及商誉减值测试中税前折现率与税后现金流口径的一致性，避免口径错配导致的指标失真。"
+)
+
+
+def _with_narrative(company, text: str) -> Company:
+    company.narrative = text
+    return company
 
 
 # ---------------------------------------------------------------- 样本集
 def build_dataset() -> List[Dict]:
-    """构造 14 个合成样本：2 阴性 + 5 类×2 强度注入 + 2 阈下。
+    """构造 ≥40 个**合成（synthetic）**评测窗口（方案 §8.2）。
+
+    类别覆盖（需求清单）：
+    - 正常阴性样本（清洁公司，金标准为空）
+    - 低/中/高三档异常（5 类可注入 × 3 强度）
+    - 临界阈值样本（5 类近阈下边界）
+    - 长文本但漏报关键异常（清洁/注入 + 长 MD&A 背景）
+    - 专业术语堆砌（清洁/注入 + 术语背景）
+    - 数字正确但年份错置（不同日历年份锚点的注入窗口，检验期间归属）
+    - 公式分母错误 / 重复报告 / 表述造假：见 eval/validity 对抗夹具（derived，非真实模型输出）
 
     注入样本同时保留注入前基底（base）与注入元数据（injection），
     使金标准可以完全由注入侧独立给出，并在注入后重跑规则做有效性核验。
     """
     cases: List[Dict] = []
-    for i in range(2):
+
+    # 1) 正常阴性样本：8 个清洁公司（不同基底，避免同源重复）
+    for i in range(8):
         c = make_negative_control(seed=i, name=f"阴性对照{i+1}")
         cases.append({"company": c, "kind": KIND_NEGATIVE, "base": None, "injection": None,
-                      "meta": {"kind": KIND_NEGATIVE, "inject": None, "name": c.name}})
+                      "meta": {"kind": KIND_NEGATIVE, "inject": None, "category": "negative",
+                               "name": c.name}})
+
+    # 2) 低/中/高三档异常：5 类 × 各 3 档强度（按类型选取能稳定触发低/中/高的强度）
     for st in INJECT_TYPES:
-        for s in (1.0, 2.0):
+        for s in SEVERITY_STRENGTHS.get(st, (0.8, 1.0, 2.0)):
             base = make_clean_company(name=f"注入_{st}_{s}")
             c, im = inject(base, st, strength=s)
             finalize_injection(base, c, im)
             cases.append({"company": c, "kind": KIND_INJECTED, "base": base, "injection": im,
                           "meta": {"kind": KIND_INJECTED, "inject": st, "strength": s,
+                                   "severity": im.target_severity, "category": "injected",
                                    "name": c.name}})
-    for st in _BOUNDARY_TYPES:
+
+    # 3) 临界阈值样本：5 类近阈下边界
+    for st in INJECT_TYPES:
         c = make_boundary_control(st)
         cases.append({"company": c, "kind": KIND_BOUNDARY, "base": None, "injection": None,
-                      "meta": {"kind": KIND_BOUNDARY, "inject": st, "name": c.name}})
+                      "meta": {"kind": KIND_BOUNDARY, "inject": st, "category": "boundary",
+                               "name": c.name}})
+
+    # 4) 长文本但漏报关键异常：2 清洁 + 3 注入（带长 MD&A 背景）
+    for i in range(2):
+        c = make_negative_control(seed=100 + i, name=f"长文本阴性{i+1}")
+        cases.append({"company": _with_narrative(c, _LONG_NARRATIVE), "kind": KIND_NEGATIVE,
+                      "base": None, "injection": None,
+                      "meta": {"kind": KIND_NEGATIVE, "inject": None, "category": "long_text",
+                               "name": c.name}})
+    for st in ("receivables_revenue_divergence", "goodwill_net_assets_pressure",
+               "cashflow_profit_divergence"):
+        base = make_clean_company(name=f"长文本注入_{st}")
+        c, im = inject(base, st, strength=1.0)
+        finalize_injection(base, c, im)
+        cases.append({"company": _with_narrative(c, _LONG_NARRATIVE), "kind": KIND_INJECTED,
+                      "base": base, "injection": im,
+                      "meta": {"kind": KIND_INJECTED, "inject": st, "strength": 1.0,
+                               "severity": im.target_severity, "category": "long_text",
+                               "name": c.name}})
+
+    # 5) 专业术语堆砌：2 清洁 + 2 注入（带术语背景）
+    for i in range(2):
+        c = make_negative_control(seed=200 + i, name=f"术语堆砌阴性{i+1}")
+        cases.append({"company": _with_narrative(c, _JARGON_NARRATIVE), "kind": KIND_NEGATIVE,
+                      "base": None, "injection": None,
+                      "meta": {"kind": KIND_NEGATIVE, "inject": None, "category": "jargon",
+                               "name": c.name}})
+    for st in ("inventory_cost_divergence", "gross_net_margin_divergence"):
+        base = make_clean_company(name=f"术语堆砌注入_{st}")
+        c, im = inject(base, st, strength=1.0)
+        finalize_injection(base, c, im)
+        cases.append({"company": _with_narrative(c, _JARGON_NARRATIVE), "kind": KIND_INJECTED,
+                      "base": base, "injection": im,
+                      "meta": {"kind": KIND_INJECTED, "inject": st, "strength": 1.0,
+                               "severity": im.target_severity, "category": "jargon",
+                               "name": c.name}})
+
+    # 6) 数字正确但年份错置：不同日历年份锚点的注入窗口，检验期间归属
+    for years in ([2020, 2021, 2022], [2021, 2022, 2023], [2022, 2023, 2024]):
+        st = "receivables_revenue_divergence"
+        base = make_clean_company(name=f"年份偏移_{years[0]}", years=list(years))
+        c, im = inject(base, st, strength=1.0)
+        finalize_injection(base, c, im)
+        cases.append({"company": c, "kind": KIND_INJECTED, "base": base, "injection": im,
+                      "meta": {"kind": KIND_INJECTED, "inject": st, "strength": 1.0,
+                               "severity": im.target_severity, "category": "year_shift",
+                               "years": list(years), "name": c.name}})
+
     return cases
 
 

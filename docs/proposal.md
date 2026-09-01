@@ -415,7 +415,7 @@ s=\frac{d(x-\theta)}{\sigma}
 |---|---|---|---|---|
 | D1 | 原始数值准确性 | 仅检查 fact_basis 中声称来自报表的数值；单位归一化后按 source_record_id 回表，相对误差不超过 1% 视为命中 | 规则 | 命中率 |
 | D2 | 公式与计算正确性 | 检查 formula_id、科目、期间、分子分母和算术结果；使用安全公式注册表复算 | 规则 | 公式正确率、算术通过率 |
-| D3 | 证据可追溯性 | 检查 source_record_id、源文件、报表归属、期间和字段是否有效 | 规则 | 可追溯率 |
+| D3 | 证据可追溯性 | 严格单元格级回表：`fact_basis` 须含 **10 字段** `source_record_id, source_file, source_row, source_column, statement, metric_key, metric_name, period, value, unit`，且 10 字段**全匹配**（缺 `metric_name` 或缺/错 `unit` 均判不通过）；评估器优先按 `source_record_id` 稳定主键回表 | 规则 | 严格可追溯率、定位方式（by_record_id/by_fallback/unresolved） |
 | D4 | 覆盖完整性 | 输出的八类 signal_type 与金标准集合匹配，计算普通召回、加权召回和严重异常漏报率 | 规则 | R、Rw、MRhigh |
 | D5 | 误报控制 | 对枚举内但不在金标准中的输出进行规则复核和人工确认；不成立者计为 FP | 混合 | 精确率、误报率 |
 | D6 | 重要性排序 | 比较模型 severity 与金标准等级；有序标签使用加权 Kappa，排序使用 Spearman | 混合 | 等级一致性 |

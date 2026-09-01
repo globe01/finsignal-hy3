@@ -38,6 +38,11 @@ EVIDENCE_RULES = """\
 - statement：写 income / balance / cashflow（分别对应利润表 / 资产负债表 / 现金流量表）；
 - source_file：写输入中该表标注的文件名，例如 balance_sheet.csv；
 - metric_key：写英文科目键（如 accounts_receivable、revenue、cfo、net_profit）；
+- metric_name：写中文科目名（如 应收账款、营业收入），须与 metric_key 对应的中文名一致；
+- unit：写数值单位，统一为 "元"；
+- 下列 10 个字段每条 fact_basis 都必须完整填写，缺一不可（缺任何一项 D3 严格可追溯判不通过）：
+  source_record_id / source_file / source_row / source_column / statement /
+  metric_key / metric_name / period / value / unit
 - 不要自造 ID，也不要凭空补全没在输入里出现的单元格。
 """
 

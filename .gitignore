@@ -52,10 +52,21 @@ data/private/
 *.pdf
 *.xlsx~
 
-# Generated model outputs may contain endpoint metadata
+# Generated model outputs may contain endpoint metadata.
+# 仅放行以下「脱敏、可复核」的评测产物；其余一律忽略（含 .env、密钥、单次运行原始输出）。
+# 这些放行文件由 `python -m eval.run_eval --offline --runs 3` 确定性生成，
+# 不含任何 API Key / endpoint / 私有数据，供报告引用与人工复核。
 results/raw/*
 !results/raw/.gitkeep
+!results/raw/cases_run1.json
+!results/raw/cases_run2.json
+!results/raw/cases_run3.json
+
 results/tables/*.json
+!results/tables/stability.json
+!results/tables/report_run1.json
+!results/tables/report_run2.json
+!results/tables/report_run3.json
 
 # Streamlit secrets
 .streamlit/

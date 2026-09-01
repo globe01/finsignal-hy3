@@ -1,13 +1,14 @@
 """D1 原始数值准确性 与 D3 证据可追溯性（对应方案 §6.1、§5.3）。
 
-严格口径（本轮修复重点）：
+严格口径：
 
 - **D1 原始数值准确性**：fact_basis 中声称来自报表的数值，优先按 source_record_id 回表，
   其次按 (科目, 期间) 降级定位；相对误差 <= 1% 视为命中。降级定位的条数单独统计，
   以便说明有多少 D1 命中并非由稳定记录号支撑。
 - **D3 证据可追溯性**：必须通过 source_record_id 回表成功，且
-  source_file / source_row / source_column / statement / metric_key / period / value
-  七项与记录索引逐一一致，才计为「严格可追溯」。
+  D3_FIELDS（共 10 个字段）与记录索引逐一一致，才计为「严格可追溯」：
+  source_record_id / source_file / source_row / source_column / statement /
+  metric_key / metric_name / period / value / unit。
   仅"科目名和年份存在"不再计为可追溯——那只是定位可行，不是证据可核验。
 
 同时输出逐字段通过率，便于定位模型到底缺哪一类证据字段。
@@ -26,7 +27,8 @@ from generator.base import (
     build_record_index,
 )
 
-# D3 严格可追溯需要逐一核验的字段
+# D3 严格可追溯需要逐一核验的字段（共 10 个，方案 §5.3 / 评测需求）
+# 任一项不一致即 D3 严格口径判不通过；不为提分放宽任何字段。
 D3_FIELDS = (
     "source_record_id",
     "source_file",
@@ -34,8 +36,10 @@ D3_FIELDS = (
     "source_column",
     "statement",
     "metric_key",
+    "metric_name",
     "period",
     "value",
+    "unit",
 )
 
 D1_REL_TOL = 0.01  # 方案 §6.1：相对误差 <= 1% 视为命中
@@ -145,6 +149,9 @@ def check_fact(fact, index: int, record_idx: Dict[str, SourceRecord],
     )
     ok["statement"] = _norm_statement(fact.statement) == rec.statement
     ok["metric_key"] = _norm_metric_key(fact) == rec.metric_key
+    ok["metric_name"] = (
+        str(fact.metric_name).strip() == rec.metric_name if fact.metric_name else False
+    )
     ok["period"] = (str(fact.period).strip() == rec.period) if fact.period else False
 
     # ---- D1 数值核验（1% 相对容差；0 值用绝对容差）----
@@ -155,6 +162,7 @@ def check_fact(fact, index: int, record_idx: Dict[str, SourceRecord],
         else:
             value_ok = abs(fact.value - rec.value) / abs(rec.value) <= D1_REL_TOL
     ok["value"] = value_ok
+    ok["unit"] = (str(fact.unit).strip() == rec.unit) if fact.unit else False
 
     chk.field_ok = ok
     chk.d1_hit = value_ok
