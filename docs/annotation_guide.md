@@ -13,11 +13,21 @@
 
 ## 1. 标注对象
 
-标注对象 = 模型产出的**异常卡片**（来自在线评测的 `results/raw/cases_run*.json` 中 `cards_full`，
-或从 `app/streamlit_app.py` 单条扫描导出）。每条卡片对应一格标注行。
+标注对象 = 模型产出的**异常卡片**。为避免标注者接触金标准（失去独立性），一律通过**盲评导出工具**
+生成材料，再交付标注：
 
-> 不要在标注前看到金标准（`ground_truth`）——否则标注会被金标准锚定，失去独立性。
-> 标注者只看「财务数据原文 + 模型卡片」。
+```bash
+# 从一次固定在线评测导出盲评数据（匿名 case_id + 财务输入原文 + 模型卡片，剥离金标准）
+python -m eval.validity.export_blind \
+    --cases results/online_local/cases_run1.json \
+    --out results/blind/cases_run1_blind.json
+```
+
+导出的每条记录只含三字段：`case_id`（匿名 `case_000`…）、`input_text`（模型实际看到的财务输入原文）、
+`cards`（模型产出的卡片）。标注者**只看「财务数据原文 + 模型卡片」**，不接触任何金标准 / 注入元数据。
+
+> ⚠️ 不要在标注前看到金标准（`ground_truth`）或注入元数据（`meta.inject` / `meta.severity` /
+> `meta.category`）——否则标注会被锚定，失去独立性。盲评导出已自动剔除这些字段。
 
 ---
 
@@ -25,17 +35,21 @@
 
 | 列 | 含义 | 取值 |
 |----|------|------|
-| `case_id` | 样本窗口编号 | 如 `inject_receivables_1.0` |
-| `card_id` | 卡片编号（同一样本内唯一） | 如 `card_0` |
-| `signal_type` | 卡片声称的信号类型 | 8 类固定类型或 `other` |
+| `case_id` | 样本窗口编号（**匿名**，由 `--emit-template` 自动生成 `case_000`…） | 如 `case_000` |
+| `card_id` | 卡片编号（**同一样本内稳定序号 `card_000`…**，保证全局 `(case_id, card_id)` 唯一） | 如 `card_000` |
+| `signal_type` | 卡片声称的信号类型（模型自陈，供标注者核对） | 8 类固定类型或 `other` |
 | `period` | 卡片标注的期间 | 如 `2023` / `2022-2023` |
-| `annotator` | 标注者代号 | `A` / `B` / `C` |
+| `annotator` | 标注者代号 | `A` / `B` |
 | `round` | 重复标注轮次（用于波动分析） | `1` / `2` |
 | `signal_valid` | 该卡片是否对应数据中真实存在的可报告信号 | `yes` / `uncertain` / `no` |
-| `severity_label` | 标注者认定的严重度 | `low` / `medium` / `high` / `na` |
+| `severity_label` | 标注者认定的严重度（**模板留空**，由标注者独立判定，不泄露模型严重度） | `low` / `medium` / `high` / `na` |
 | `d7_score` | 解释与边界质量（1–5，Rubric 锚定，见 §3） | 1.0–5.0 |
 | `d8_violation` | 卡片是否含买卖建议/无依据造假认定等违规 | `yes` / `no` / `na` |
 | `note` | 自由备注 | 文本 |
+
+> `card_id` 用稳定序号而非 `signal_type`：同一 case 内可能出现重复 `signal_type`（多个同类信号），
+> 用 `card_000`/`card_001`… 才能保证每个 `(case_id, card_id)` 唯一、可回表。`case_id` 已匿名化，
+> 不泄露样本身份或注入类型。
 
 ---
 
@@ -70,9 +84,24 @@
 # 计算一致性（标注数据不足时输出 PENDING，不报错、不造假）
 python -m eval.validity.agreement --csv eval/validity/annotations.csv
 
-# 从在线评测结果抽取待标注卡片清单（仅列卡片，不填标注）
-python -m eval.validity.agreement --emit-template results/raw/cases_run1.json
+# 从在线评测结果抽取待标注卡片清单（匿名 case_id + 稳定 card_000 序号，severity_label 留空）
+python -m eval.validity.agreement --emit-template results/online_local/cases_run1.json
+
+# 导出盲评数据（剥离金标准，供标注者独立判断）
+python -m eval.validity.export_blind \
+    --cases results/online_local/cases_run1.json \
+    --out results/blind/cases_run1_blind.json
 ```
+
+### 5.1 标注执行约定（提交前收口）
+
+- **两名标注者 A、B 独立标注同一批卡片**：从盲评导出中选取 **50–60 张卡片**（覆盖各信号类型与
+  阴性/注入/长文本/术语/年份错置等类别），A、B 各自独立标注，互不讨论。
+- 同一批卡片建议做 **第 2 轮（round=2）** 重复标注，用于估计标注者内波动（见 §4 重复评估波动）。
+- 标注完成后回填 `eval/validity/annotations.csv`，再跑 `agreement --csv` 计算 Cohen's / Fleiss κ
+  与 Spearman ρ；标注者 <2 或仅 1 轮时 `agreement.py` 明确输出 `PENDING`，**绝不编造**一致性数值。
+- 盲评导出产物（`results/blind/`）与在线原始产物（`results/online_local/`）均为真实模型输出，
+  本地留档、**不入库**（已在 `.gitignore` 中）。
 
 ---
 

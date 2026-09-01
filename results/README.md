@@ -1,9 +1,9 @@
 # results/ —— 评测产物与可复核性说明
 
-本目录存放评测运行产物。**只有下列 7 个脱敏文件纳入 Git 版本库**，其余原始输出、密钥、
+本目录存放评测运行产物。**只有下列 9 个脱敏文件纳入 Git 版本库**（离线自检 7 个 + 在线脱敏汇总 2 个），其余原始输出、密钥、
 单次运行聚合结果均被 `.gitignore` 忽略，不会入库。
 
-## 纳入版本库的 7 个文件（脱敏、可复核）
+## 纳入版本库的 9 个文件（脱敏、可复核）
 
 | 文件 | 内容 | 生成方 |
 |---|---|---|
@@ -14,6 +14,8 @@
 | `results/tables/report_run2.json` | 第 2 次 | 同上 |
 | `results/tables/report_run3.json` | 第 3 次 | 同上 |
 | `results/tables/stability.json` | 3 次运行的均值/最小/最大稳定性汇总 | 同上 |
+| `results/online_summary.json` | 在线评测脱敏汇总（各指标 均值/最小/最大 + 逐轮 num/den + 运行配置） | `eval/summary_online.py` |
+| `results/online_runs_summary.csv` | 同上，宽表（metric, run, value, num, den） | `eval/summary_online.py` |
 
 > 这些文件**不含任何 API Key、endpoint、私有数据或真实上市公司数据**。离线自检由金标准
 > 反向构造「完美模型」输出，全程不联网、不导入 `openai`，因此不存在接口元数据泄露风险。
@@ -27,6 +29,38 @@ python -m eval.run_eval --offline --runs 3
 
 - 单次自检：`python -m eval.run_eval --offline`
 - 真实在线评测（需配置 `.env` 中的 `HY3_API_KEY`，产物不入库）：`python -m eval.run_eval --runs 3`
+
+## 在线评测产物（本地留档，不入库）
+
+经 `--output-dir` 隔离，在线评测产物写入独立目录，**不覆盖**上面的离线自检锚点：
+
+| 目录 / 文件 | 内容 | 是否入库 |
+|---|---|---|
+| `results/online_local/` | 3 轮真实 Hy3 评测原始产物（`cases_run1-3.json` / `report_run1-3.json` / `stability.json`），gitignored | 否（本地留档，作 §5 分析原始凭证） |
+| `results/online_judge_local/` | 启用 `--hy3-judge` 的小规模评测产物，gitignored | 否 |
+| `results/blind/` | 盲评导出（`export_blind.py`，剥离金标准），gitignored | 否（真实模型输出，供人工标注） |
+| `results/online_summary.json` | 在线评测**脱敏汇总**（各指标 均值/最小/最大 + 逐轮 num/den + 运行配置） | ✅ 入库 |
+| `results/online_runs_summary.csv` | 同上，宽表（metric, run, value, num, den） | ✅ 入库 |
+
+> 仅 `results/online_summary.json` / `results/online_runs_summary.csv` 入库供 GitHub 用户复核；
+> 二者**不含任何 API Key / endpoint / 模型原始输出 / 公司身份**，由 `eval/summary_online.py` 从
+> `results/online_local/` 生成。原始在线产物始终保留在本地、不入库。
+
+### 生成命令（在线 / 汇总 / 盲评）
+
+```bash
+# 在线评测 3 轮，产物隔离到 results/online_local（不覆盖离线锚点）
+python -m eval.run_eval --runs 3 --output-dir results/online_local
+
+# 由本地在线评测生成脱敏汇总（可提交）
+python -m eval.summary_online --in-dir results/online_local \
+    --out-json results/online_summary.json --out-csv results/online_runs_summary.csv
+
+# 导出盲评数据（匿名 case_id + 财务输入 + 模型卡片，剥离金标准）
+python -m eval.validity.export_blind \
+    --cases results/online_local/cases_run1.json \
+    --out results/blind/cases_run1_blind.json
+```
 
 ## 运行时间（最近一次提交入库的运行）
 

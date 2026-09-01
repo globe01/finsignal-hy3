@@ -492,7 +492,8 @@ def aggregate(results: List[Dict]) -> Dict:
 # ---------------------------------------------------------------- 主流程
 def run(offline: bool, limit: Optional[int] = None,
         period_mode: str = PERIOD_MATCH_OVERLAP, write: bool = True,
-        tag: str = "", hy3_judge: bool = False) -> Dict:
+        tag: str = "", hy3_judge: bool = False,
+        output_dir: Optional[str] = None) -> Dict:
     # 离线模式禁用 Hy3 Judge：它必须联网，否则会破坏 --offline 的零依赖承诺
     if offline and hy3_judge:
         raise ValueError("--hy3-judge 需要联网，不能与 --offline 同时使用")
@@ -522,20 +523,21 @@ def run(offline: bool, limit: Optional[int] = None,
     agg["run_config"] = {
         "offline": offline, "limit": limit, "period_mode": period_mode,
         "temperature": 0, "n_cases": len(cases), "tag": tag,
-        "hy3_judge": hy3_judge,
+        "hy3_judge": hy3_judge, "output_dir": output_dir,
     }
     if write:
-        _write_results(results, agg, tag=tag)
+        _write_results(results, agg, tag=tag, output_dir=output_dir)
     return {"cases": results, "aggregate": agg}
 
 
 def run_multi(offline: bool, limit: Optional[int], period_mode: str, runs: int,
-              hy3_judge: bool = False) -> Dict:
+              hy3_judge: bool = False, output_dir: Optional[str] = None) -> Dict:
     """跑多次并给出 均值 / 最小 / 最大（方案 §6.4：在线模型即便 temperature=0 仍有波动）。"""
     all_runs = []
     for i in range(runs):
         out = run(offline=offline, limit=limit, period_mode=period_mode,
-                  write=True, tag=f"run{i+1}", hy3_judge=hy3_judge)
+                  write=True, tag=f"run{i+1}", hy3_judge=hy3_judge,
+                  output_dir=output_dir)
         all_runs.append(out["aggregate"])
 
     def _stat(path: List[str]):
@@ -565,20 +567,42 @@ def run_multi(offline: bool, limit: Optional[int], period_mode: str, runs: int,
         "D7_hy3": _stat(["D7_hy3_judge_mean", "value"]),
         "D8_hy3": _stat(["D8_compliance_hy3_judge", "value"]),
     }
-    os.makedirs(TABLES, exist_ok=True)
-    with open(os.path.join(TABLES, "stability.json"), "w", encoding="utf-8") as f:
-        json.dump({"runs": runs, "period_mode": period_mode, "stability": stability},
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
+        stab_path = os.path.join(output_dir, "stability.json")
+    else:
+        os.makedirs(TABLES, exist_ok=True)
+        stab_path = os.path.join(TABLES, "stability.json")
+    with open(stab_path, "w", encoding="utf-8") as f:
+        json.dump({"runs": runs, "period_mode": period_mode, "stability": stability,
+                   "output_dir": output_dir},
                   f, ensure_ascii=False, indent=2)
     return {"runs": all_runs, "stability": stability}
 
 
-def _write_results(results: List[Dict], agg: Dict, tag: str = "") -> None:
-    os.makedirs(RAW, exist_ok=True)
-    os.makedirs(TABLES, exist_ok=True)
+def _write_results(results: List[Dict], agg: Dict, tag: str = "",
+                  output_dir: Optional[str] = None) -> None:
+    """写出逐样本明细与集合聚合。
+
+    - ``output_dir=None``（默认）：写入 ``results/raw`` 与 ``results/tables``（离线自检锚点）。
+    - ``output_dir`` 给定：平铺写入该目录（``cases{suffix}.json`` / ``report{suffix}.json``），
+      不触碰默认锚点文件，保证在线 / 离线产物互不覆盖（方案 §13 提交前收口）。
+    """
+    if output_dir:
+        base = output_dir
+        os.makedirs(base, exist_ok=True)
+    else:
+        base = None
+        os.makedirs(RAW, exist_ok=True)
+        os.makedirs(TABLES, exist_ok=True)
+    raw_dir = base if base else RAW
+    tables_dir = base if base else TABLES
+    os.makedirs(raw_dir, exist_ok=True)
+    os.makedirs(tables_dir, exist_ok=True)
     suffix = f"_{tag}" if tag else ""
-    with open(os.path.join(RAW, f"cases{suffix}.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(raw_dir, f"cases{suffix}.json"), "w", encoding="utf-8") as f:
         json.dump(results, f, ensure_ascii=False, indent=2, default=str)
-    with open(os.path.join(TABLES, f"report{suffix}.json"), "w", encoding="utf-8") as f:
+    with open(os.path.join(tables_dir, f"report{suffix}.json"), "w", encoding="utf-8") as f:
         json.dump(agg, f, ensure_ascii=False, indent=2, default=str)
 
 
@@ -666,11 +690,14 @@ def main() -> None:
                     choices=["overlap", "exact"], help="期间匹配口径")
     ap.add_argument("--hy3-judge", action="store_true",
                     help="额外跑 Hy3-as-Judge 语义评审（每张卡片 1 次调用，需联网）")
+    ap.add_argument("--output-dir", default=None,
+                    help="在线/额外产物输出目录（默认写入 results/raw|tables 离线自检锚点）；"
+                         "指定后平铺写入该目录，避免覆盖离线自检锚点")
     args = ap.parse_args()
     if args.runs > 1:
         out = run_multi(offline=args.offline, limit=args.limit,
                         period_mode=args.period_mode, runs=args.runs,
-                        hy3_judge=args.hy3_judge)
+                        hy3_judge=args.hy3_judge, output_dir=args.output_dir)
         print("\n==== 多次运行稳定性（均值 / 区间）====")
         for k, v in out["stability"].items():
             if v is None:
@@ -680,7 +707,7 @@ def main() -> None:
                       f"max={v['max']:.4f}  runs={v['runs']}")
         return
     out = run(offline=args.offline, limit=args.limit, period_mode=args.period_mode,
-              hy3_judge=args.hy3_judge)
+              hy3_judge=args.hy3_judge, output_dir=args.output_dir)
     _print_report(out["aggregate"])
 
 

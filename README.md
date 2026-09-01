@@ -154,6 +154,18 @@ python -m eval.run_eval --limit 3 --hy3-judge
 # 期间严格匹配敏感性分析
 python -m eval.run_eval --period-mode exact
 
+# 在线评测产物隔离到独立目录（不覆盖 results/raw|tables 离线自检锚点）
+python -m eval.run_eval --runs 3 --output-dir results/online_local
+python -m eval.run_eval --limit 5 --hy3-judge --output-dir results/online_judge_local
+
+# 由本地在线评测生成脱敏汇总（可提交，供 GitHub 复核，不含 Key/endpoint/原始输出）
+python -m eval.summary_online --in-dir results/online_local \
+    --out-json results/online_summary.json --out-csv results/online_runs_summary.csv
+
+# 导出盲评数据（匿名 case_id + 财务输入 + 模型卡片，剥离金标准，供人工标注）
+python -m eval.validity.export_blind --cases results/online_local/cases_run1.json \
+    --out results/blind/cases_run1_blind.json
+
 # 交互式 Demo（上传 CSV / 粘贴数据 → 调 Hy3 → 卡片展示 + D1/D2/D3/D8 校验 + 免责声明）
 streamlit run app/streamlit_app.py
 ~~~

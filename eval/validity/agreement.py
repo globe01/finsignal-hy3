@@ -219,24 +219,37 @@ def compute_agreement(df: pd.DataFrame) -> Dict:
     return out
 
 
-def _emit_template(cases_json: str) -> None:
-    """从在线评测 cases json 抽取待标注卡片清单（仅列卡片，不填标注）。"""
-    with open(cases_json, encoding="utf-8") as f:
-        cases = json.load(f)
+def _template_rows(cases: List[Dict]) -> List[Dict]:
+    """从在线评测 cases 抽取待标注卡片清单（仅列卡片，不填标注）。
+
+    设计（提交前收口修复）：
+    - ``case_id`` 用匿名顺序号 ``case_000`` 替代 ``meta.name``，避免泄漏样本身份 / 注入类型。
+    - ``card_id`` 用每样本内稳定序号 ``card_000``、``card_001``… 取代 ``signal_type``，
+      因为同一 case 内可能出现重复 ``signal_type``；保证每个 ``(case_id, card_id)`` 全局唯一。
+    - ``severity_label`` 留空：标注者**独立**判定严重度，不泄露模型自报严重度。
+    不写入任何金标准 / 注入 / 评估字段（标注独立性由 docs/annotation_guide.md 约束）。
+    """
     rows = []
-    for c in cases:
-        meta = c.get("meta", {})
-        for card in c.get("cards_full", []) or []:
+    for ci, c in enumerate(cases):
+        case_id = f"case_{ci:03d}"
+        for ki, card in enumerate(c.get("cards_full", []) or []):
             rows.append({
-                "case_id": meta.get("name", meta.get("kind", "")),
-                "card_id": card.get("signal_type", "other"),
+                "case_id": case_id,
+                "card_id": f"card_{ki:03d}",
                 "signal_type": card.get("signal_type", ""),
                 "period": "|".join(card.get("periods", []) or []),
                 "annotator": "", "round": 1, "signal_valid": "",
-                "severity_label": card.get("severity", ""),
+                "severity_label": "",
                 "d7_score": "", "d8_violation": "", "note": "",
             })
-    out = pd.DataFrame(rows)
+    return rows
+
+
+def _emit_template(cases_json: str) -> None:
+    """从在线评测 cases json 抽取待标注卡片清单（仅列卡片，不填标注）并打印 CSV。"""
+    with open(cases_json, encoding="utf-8") as f:
+        cases = json.load(f)
+    out = pd.DataFrame(_template_rows(cases))
     sys.stdout.write(out.to_csv(index=False))
 
 
