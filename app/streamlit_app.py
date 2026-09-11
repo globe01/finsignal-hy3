@@ -35,6 +35,419 @@ DISCLAIMER = (
     "不构成投资建议、交易建议或审计结论。异常信号仅表示「值得进一步核查」。"
 )
 
+SEVERITY_META = {
+    "high": {"label": "高", "class": "sev-high"},
+    "medium": {"label": "中", "class": "sev-medium"},
+    "low": {"label": "低", "class": "sev-low"},
+}
+
+
+def _inject_css() -> None:
+    st.markdown(
+        """
+        <style>
+        :root {
+            --fs-bg: #0e1117;
+            --fs-panel: #171a22;
+            --fs-panel-2: #20242f;
+            --fs-line: rgba(232, 236, 244, 0.11);
+            --fs-line-strong: rgba(232, 236, 244, 0.18);
+            --fs-text: #f4f6fb;
+            --fs-muted: #9aa3b2;
+            --fs-soft: #cbd1dc;
+            --fs-red: #ff5a5f;
+            --fs-amber: #d6a53f;
+            --fs-green: #5dbb7b;
+            --fs-cyan: #7cc7d8;
+        }
+
+        .stApp {
+            background:
+                linear-gradient(180deg, #11141b 0%, #0d1016 46%, #0b0e13 100%);
+            color: var(--fs-text);
+        }
+
+        [data-testid="stAppViewContainer"] > .main .block-container {
+            max-width: 1180px;
+            padding-top: 4.2rem;
+            padding-bottom: 4rem;
+        }
+
+        [data-testid="stSidebar"] {
+            background: #171a22;
+            border-right: 1px solid var(--fs-line);
+        }
+
+        [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+        [data-testid="stSidebar"] label,
+        [data-testid="stSidebar"] span {
+            color: var(--fs-soft);
+        }
+
+        h1, h2, h3 {
+            letter-spacing: 0;
+        }
+
+        div[data-testid="stMetric"] {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px solid var(--fs-line);
+            border-radius: 8px;
+            padding: 0.75rem 0.9rem;
+        }
+
+        div[data-testid="stMetric"] label {
+            color: var(--fs-muted) !important;
+        }
+
+        div[data-testid="stMetricValue"] {
+            color: var(--fs-text);
+            font-size: 1.55rem;
+        }
+
+        .stButton > button {
+            border: 1px solid rgba(255, 90, 95, 0.65);
+            border-radius: 8px;
+            background: linear-gradient(180deg, #ff6469 0%, #e94950 100%);
+            color: white;
+            font-weight: 700;
+            min-height: 2.7rem;
+            box-shadow: 0 8px 24px rgba(233, 73, 80, 0.22);
+        }
+
+        .stButton > button:hover {
+            border-color: #ff8a8e;
+            color: white;
+            transform: translateY(-1px);
+        }
+
+        .stTextArea textarea {
+            background: #1a1d26;
+            border: 1px solid var(--fs-line-strong);
+            border-radius: 8px;
+            color: #eef2f8;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+            line-height: 1.48;
+        }
+
+        .stTextArea textarea:focus,
+        .stTextInput input:focus {
+            border-color: rgba(124, 199, 216, 0.72);
+            box-shadow: 0 0 0 1px rgba(124, 199, 216, 0.18);
+        }
+
+        [data-testid="stFileUploader"] {
+            background: rgba(255, 255, 255, 0.035);
+            border: 1px dashed rgba(203, 209, 220, 0.28);
+            border-radius: 8px;
+            padding: 1rem;
+        }
+
+        .fs-hero {
+            border-bottom: 1px solid var(--fs-line);
+            padding: 0.35rem 0 1.45rem;
+            margin-bottom: 1.2rem;
+        }
+
+        .fs-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            color: var(--fs-cyan);
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0;
+            margin-bottom: 0.65rem;
+        }
+
+        .fs-title {
+            font-size: 4rem;
+            line-height: 0.96;
+            font-weight: 800;
+            letter-spacing: 0;
+            margin: 0 0 0.75rem;
+            max-width: 980px;
+        }
+
+        .fs-subtitle {
+            color: var(--fs-soft);
+            font-size: 1.04rem;
+            line-height: 1.72;
+            max-width: 820px;
+            margin: 0;
+        }
+
+        .fs-strip {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.75rem;
+            margin: 1.25rem 0 0;
+        }
+
+        .fs-strip-item {
+            border: 1px solid var(--fs-line);
+            border-radius: 8px;
+            padding: 0.82rem 0.95rem;
+            background: rgba(255, 255, 255, 0.032);
+        }
+
+        .fs-strip-label {
+            color: var(--fs-muted);
+            font-size: 0.78rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .fs-strip-value {
+            color: var(--fs-text);
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        .fs-note {
+            border: 1px solid rgba(214, 165, 63, 0.38);
+            border-left: 4px solid var(--fs-amber);
+            background: rgba(214, 165, 63, 0.12);
+            border-radius: 8px;
+            padding: 0.78rem 0.9rem;
+            color: #f3e4bc;
+            margin: 1.1rem 0 1.1rem;
+        }
+
+        .fs-panel-title {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 1rem;
+            margin: 1.2rem 0 0.65rem;
+        }
+
+        .fs-panel-title h2 {
+            font-size: 1.08rem;
+            margin: 0;
+        }
+
+        .fs-panel-title span {
+            color: var(--fs-muted);
+            font-size: 0.86rem;
+        }
+
+        .fs-sidebar-brand {
+            padding: 0.35rem 0 0.85rem;
+            border-bottom: 1px solid var(--fs-line);
+            margin-bottom: 1rem;
+        }
+
+        .fs-sidebar-brand strong {
+            display: block;
+            color: var(--fs-text);
+            font-size: 1.18rem;
+            margin-bottom: 0.2rem;
+        }
+
+        .fs-sidebar-brand span {
+            color: var(--fs-muted);
+            font-size: 0.82rem;
+        }
+
+        .fs-side-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 0.75rem;
+            border-bottom: 1px solid rgba(232, 236, 244, 0.08);
+            padding: 0.55rem 0;
+            font-size: 0.88rem;
+        }
+
+        .fs-side-row span:first-child {
+            color: var(--fs-muted);
+        }
+
+        .fs-side-row span:last-child {
+            color: var(--fs-text);
+            text-align: right;
+            overflow-wrap: anywhere;
+        }
+
+        .fs-pill {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 6px;
+            padding: 0.18rem 0.55rem;
+            font-size: 0.76rem;
+            font-weight: 700;
+            border: 1px solid var(--fs-line-strong);
+            color: var(--fs-soft);
+            background: rgba(255, 255, 255, 0.04);
+            white-space: nowrap;
+        }
+
+        .fs-pill.sev-high {
+            border-color: rgba(255, 90, 95, 0.55);
+            color: #ffb5b8;
+            background: rgba(255, 90, 95, 0.11);
+        }
+
+        .fs-pill.sev-medium {
+            border-color: rgba(214, 165, 63, 0.55);
+            color: #f0d391;
+            background: rgba(214, 165, 63, 0.11);
+        }
+
+        .fs-pill.sev-low {
+            border-color: rgba(93, 187, 123, 0.55);
+            color: #b8e1c6;
+            background: rgba(93, 187, 123, 0.11);
+        }
+
+        .fs-card-head {
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: flex-start;
+            border-bottom: 1px solid var(--fs-line);
+            padding-bottom: 0.78rem;
+            margin-bottom: 0.78rem;
+        }
+
+        .fs-card-title {
+            font-size: 1.02rem;
+            font-weight: 780;
+            color: var(--fs-text);
+            margin-bottom: 0.28rem;
+        }
+
+        .fs-card-meta {
+            color: var(--fs-muted);
+            font-size: 0.84rem;
+        }
+
+        .fs-card-body {
+            color: var(--fs-soft);
+            line-height: 1.68;
+            margin-bottom: 0.65rem;
+        }
+
+        .fs-label {
+            color: var(--fs-muted);
+            font-size: 0.78rem;
+            font-weight: 700;
+            margin: 0.7rem 0 0.18rem;
+        }
+
+        .fs-callout {
+            border: 1px solid rgba(93, 187, 123, 0.35);
+            border-left: 4px solid var(--fs-green);
+            border-radius: 8px;
+            padding: 0.62rem 0.75rem;
+            color: #c9ead4;
+            background: rgba(93, 187, 123, 0.09);
+            margin-top: 0.72rem;
+        }
+
+        [data-testid="stExpander"] {
+            border: 1px solid var(--fs-line) !important;
+            border-radius: 8px !important;
+            background: rgba(255, 255, 255, 0.025);
+        }
+
+        div[data-testid="stDataFrame"] {
+            border: 1px solid var(--fs-line);
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        @media (max-width: 760px) {
+            [data-testid="stAppViewContainer"] > .main .block-container {
+                padding-top: 2.2rem;
+            }
+            .fs-strip {
+                grid-template-columns: 1fr;
+            }
+            .fs-title {
+                font-size: 2.28rem;
+            }
+            .fs-card-head {
+                display: block;
+            }
+            .fs-card-head .fs-pill {
+                margin-top: 0.6rem;
+            }
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_hero() -> None:
+    st.markdown(
+        """
+        <section class="fs-hero">
+          <div class="fs-kicker">FinSignal Lab · Hy3</div>
+          <h1 class="fs-title">财务异常信号扫描</h1>
+          <p class="fs-subtitle">
+            基于上市公司结构化财务数据，生成带事实依据、计算过程、替代解释和结论边界的审慎分析。
+          </p>
+          <div class="fs-strip">
+            <div class="fs-strip-item">
+              <div class="fs-strip-label">Model</div>
+              <div class="fs-strip-value">Hy3 / TokenHub</div>
+            </div>
+            <div class="fs-strip-item">
+              <div class="fs-strip-label">Evidence</div>
+              <div class="fs-strip-value">Fact Basis + Formula</div>
+            </div>
+            <div class="fs-strip-item">
+              <div class="fs-strip-label">Boundary</div>
+              <div class="fs-strip-value">Research Demo Only</div>
+            </div>
+          </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def _render_disclaimer() -> None:
+    st.markdown(f'<div class="fs-note">{DISCLAIMER}</div>', unsafe_allow_html=True)
+
+
+def _render_sidebar() -> float:
+    with st.sidebar:
+        st.markdown(
+            """
+            <div class="fs-sidebar-brand">
+              <strong>FinSignal-Hy3</strong>
+              <span>财务异常信号扫描 Demo</span>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        base_url = os.getenv("HY3_BASE_URL", "默认 TokenHub")
+        model = os.getenv("HY3_MODEL", "hy3")
+        key_state = "已配置" if os.getenv("HY3_API_KEY") else "未配置"
+        st.markdown(
+            f"""
+            <div class="fs-side-row"><span>模型</span><span>{_html_escape(model)}</span></div>
+            <div class="fs-side-row"><span>API Key</span><span>{_html_escape(key_state)}</span></div>
+            <div class="fs-side-row"><span>Endpoint</span><span>{_html_escape(base_url)}</span></div>
+            """,
+            unsafe_allow_html=True,
+        )
+        temperature = st.slider("temperature", 0.0, 1.0, 0.0, 0.05,
+                                help="评测默认 0；演示可用稍高值以增加多样性")
+        st.caption("密钥仅从本地 `.env` 读取，不在代码中硬编码、不入库。")
+        return temperature
+
+
+def _html_escape(text: str) -> str:
+    return (
+        text.replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace('"', "&quot;")
+    )
+
 
 def _render_facts_table(card: AnomalyCard) -> pd.DataFrame:
     rows = []
@@ -99,34 +512,30 @@ def _structural_d1(cards: list[AnomalyCard]) -> dict:
 
 def main() -> None:
     st.set_page_config(page_title="FinSignal-Hy3 Demo", layout="wide")
-    st.title("FinSignal-Hy3 · 财务异常信号扫描 Demo")
-    st.caption("基于混元 Hy3（腾讯云 TokenHub）的上市公司财务异常信号识别与漏报敏感型评估")
+    _inject_css()
+    _render_hero()
+    _render_disclaimer()
+    temperature = _render_sidebar()
 
-    st.warning(DISCLAIMER, icon="⚠️")
-
-    with st.sidebar:
-        st.header("配置")
-        base_url = os.getenv("HY3_BASE_URL", "（默认 TokenHub）")
-        model = os.getenv("HY3_MODEL", "hy3")
-        st.text(f"模型：{model}  | endpoint：{base_url}")
-        temperature = st.slider("temperature", 0.0, 1.0, 0.0, 0.05,
-                                help="评测默认 0；演示可用稍高值以增加多样性")
-        st.divider()
-        st.caption("API Key 取自本地 `.env`（HY3_API_KEY），不在代码中硬编码、不入库。")
-
-    mode = st.radio("输入方式", ["粘贴文本", "上传 CSV"], horizontal=True)
+    st.markdown(
+        '<div class="fs-panel-title"><h2>输入数据</h2><span>利润表 / 资产负债表 / 现金流量表 + 年度列</span></div>',
+        unsafe_allow_html=True,
+    )
+    mode = st.radio("输入方式", ["粘贴文本", "上传 CSV"], horizontal=True, label_visibility="collapsed")
     text = ""
     if mode == "粘贴文本":
-        text = st.text_area("财务数据（建议用示例格式：利润表/资产负债表/现金流量表 + 年度列）",
-                            value=SAMPLE, height=320)
+        text = st.text_area("财务数据", value=SAMPLE, height=360, label_visibility="collapsed")
     else:
-        up = st.file_uploader("上传 CSV（将作为财务文本原文送入模型）", type=["csv"])
+        up = st.file_uploader("上传 CSV", type=["csv"], label_visibility="collapsed")
         if up is not None:
             raw = up.getvalue().decode("utf-8", errors="replace")
             text = raw
-            st.text_area("CSV 预览", value=raw[:2000], height=200, disabled=True)
+            st.text_area("CSV 预览", value=raw[:2000], height=220, disabled=True)
 
-    if st.button("运行扫描", type="primary"):
+    run_col, hint_col = st.columns([1, 3], vertical_alignment="center")
+    run_clicked = run_col.button("运行扫描", type="primary", use_container_width=True)
+    hint_col.caption("当前输入将作为单次扫描样本。")
+    if run_clicked:
         if not text.strip():
             st.error("请输入或上传财务数据。")
             return
@@ -161,13 +570,16 @@ def _compute_checks(out: ScanOutput) -> dict:
 
 def _show_results(out: ScanOutput) -> None:
     cards = out.cards
-    st.header(f"识别结果：{len(cards)} 张卡片")
+    st.markdown(
+        f'<div class="fs-panel-title"><h2>识别结果</h2><span>{len(cards)} 张信号卡片</span></div>',
+        unsafe_allow_html=True,
+    )
     if not cards:
         st.info("模型未识别到异常信号。阴性结果在评测中用于误报率（D5）观测。")
         return
 
     # ---- 校验面板（D1/D2/D3/D7/D8）----
-    with st.expander("📐 本地校验（D1/D2/D3/D7/D8）", expanded=True):
+    with st.expander("本地校验 D1/D2/D3/D7/D8", expanded=True):
         checks = _compute_checks(out)
         judge, d2, d1, d3 = checks["judge"], checks["d2"], checks["d1"], checks["d3"]
 
@@ -197,7 +609,7 @@ def _show_results(out: ScanOutput) -> None:
 
         # D3 字段完整度
         if d3["total_facts"]:
-            st.write("**D3 证据字段填写完整度（10 字段）**")
+            st.markdown("**D3 证据字段填写完整度（10 字段）**")
             fdf = pd.DataFrame(
                 [{"字段": k, "填写率": (f"{v * 100:.0f}%" if v is not None else "—")}
                  for k, v in d3["field_fill_rate"].items()])
@@ -207,25 +619,40 @@ def _show_results(out: ScanOutput) -> None:
     # ---- 卡片展示 ----
     for i, card in enumerate(cards):
         with st.container(border=True):
-            col_a, col_b = st.columns([1, 4])
-            with col_a:
-                sev = card.severity.value
-                color = {"high": "🔴", "medium": "🟠", "low": "🟡"}.get(sev, "⚪")
-                st.markdown(f"**{color} {sev.upper()}**")
-                st.markdown(f"`{card.signal_type.value}`")
-                if card.signal_name:
-                    st.caption(card.signal_name)
-                if card.periods:
-                    st.caption("期间：" + ", ".join(card.periods))
-            with col_b:
-                if card.supported_explanation:
-                    st.write(card.supported_explanation)
-                if card.possible_explanations:
-                    st.markdown("**替代解释(假设)**：" + "；".join(card.possible_explanations))
-                if card.next_checks:
-                    st.markdown("**建议核查**：" + "；".join(card.next_checks))
-                if card.conclusion_boundary:
-                    st.success(f"边界：{card.conclusion_boundary}")
+            sev = card.severity.value
+            sev_meta = SEVERITY_META.get(sev, {"label": sev.upper(), "class": ""})
+            sev_class = sev_meta["class"]
+            sev_label = sev_meta["label"]
+            title = card.signal_name or card.signal_type.value
+            periods = "、".join(card.periods) if card.periods else "未标注期间"
+            st.markdown(
+                f"""
+                <div class="fs-card-head">
+                  <div>
+                    <div class="fs-card-title">{i + 1}. {_html_escape(title)}</div>
+                    <div class="fs-card-meta">{_html_escape(card.signal_type.value)} · {_html_escape(periods)}</div>
+                  </div>
+                  <span class="fs-pill {sev_class}">风险等级 {_html_escape(sev_label)}</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            if card.supported_explanation:
+                st.markdown(
+                    f'<div class="fs-card-body">{_html_escape(card.supported_explanation)}</div>',
+                    unsafe_allow_html=True,
+                )
+            if card.possible_explanations:
+                st.markdown('<div class="fs-label">替代解释</div>', unsafe_allow_html=True)
+                st.markdown("；".join(card.possible_explanations))
+            if card.next_checks:
+                st.markdown('<div class="fs-label">建议核查</div>', unsafe_allow_html=True)
+                st.markdown("；".join(card.next_checks))
+            if card.conclusion_boundary:
+                st.markdown(
+                    f'<div class="fs-callout">边界：{_html_escape(card.conclusion_boundary)}</div>',
+                    unsafe_allow_html=True,
+                )
             if card.fact_basis:
                 with st.expander("事实依据 fact_basis", expanded=False):
                     st.dataframe(_render_facts_table(card), use_container_width=True, hide_index=True)
@@ -243,7 +670,7 @@ def _show_results(out: ScanOutput) -> None:
                          f"{(' — ' + '; '.join(d8_reasons)) if d8_viol else ''}")
 
     st.divider()
-    st.warning(DISCLAIMER, icon="⚠️")
+    _render_disclaimer()
     st.caption("© 犀牛鸟开源活动个人参赛作品，非腾讯/混元官方发布。")
 
 
