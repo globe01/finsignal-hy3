@@ -223,6 +223,11 @@ finsignal-hy3/
 > **当前状态**：已完成 7 条 Hy3 真实输出小规模实跑；规则评分均分 `85.07`。
 > READY 样本 4 条，均分 `93.75`；PARTIAL/N-A 样本 3 条，均分 `73.50`。
 > 该脚本仅产出规则评分快照，**不输出真实样本 D4/D5 主结论**（真实样本尚缺人工金标准）。
+> 轻量人工抽检见 [`docs/manual_review_notes.md`](docs/manual_review_notes.md)（发现规则在 PARTIAL 样本上
+> 存在多处疑似误判，PARTIAL 均分或被低估；规则快照 ≠ 业务正确性）。
+> 小型人工金标准见 [`docs/manual_gold_mini.md`](docs/manual_gold_mini.md) 与
+> `data/derived/manual_gold_mini.csv`（3 条代表样本 × 6 个审查项 = 18 条人工判定项；单人标注，
+> 只作规则校准，不计算完整 D4/D5）。
 
 ## 免责声明
 

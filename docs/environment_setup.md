@@ -115,7 +115,7 @@ python -m pytest -q
 python -m eval.run_real_eval --list
 ```
 
-预期能看到 8 家公司、24 个三年窗口；已结构化公司显示 `READY`，尚未提取的公司显示 `PENDING`。
+预期能看到 8 家公司、24 个三年窗口；窗口内字段齐全显示 `READY`，含 N/A 字段显示 `PARTIAL`（当前 **17 READY + 7 PARTIAL**，无 `PENDING` 窗口——8 家年报均已结构化摘录）。
 
 ### PDF 提取脚本
 
