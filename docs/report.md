@@ -362,6 +362,29 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
     表内「归母权益 ≤ 股东权益（含少数股东）」、非经常性损益跨年报披露数一致等
     项目均成立。
 
+### 评估方法有效性验证（离线 discriminative validation，不调用 Hy3）
+
+- **目的**：在缺乏人工金标准前，先验证「评测器能否稳定区分输出质量档位」，即
+  `good > medium > bad / adversarial` 的排序是否成立，作为 D1–D5 评分口径可信度的离线证据。
+- **构造**：`scripts/gen_real_eval_fixtures.py` 基于 `data/derived/real_eval_samples.jsonl`（gold）
+  为 8 个代表性窗口（**5 个 READY + 3 个 PARTIAL/N-A**：万华/宁德/格力/比亚迪/三一 + 中兴/恒瑞/隆基）
+  各生成 `good / medium / bad / adversarial` 四类离线「模型输出」文本，共 **32 条**，
+  写入 `data/derived/real_eval_outputs_fixture.jsonl`（每条关联 `sample_id`）。
+  - `good`：正确引用 `expected_calculations` 口径与数值，N/A 指标明确标注不补 0。
+  - `medium`：数字正确但遗漏 1–2 个维度、解释较浅，仍锚定合并报表主表口径。
+  - `bad`：含明显计算错误（毛利率/应收/存货口径高估 ×2.5、或流动比率取倒数、或经营现金流取倒数、
+    或收入趋势方向误读）且对 N/A 字段一律当 0 臆测。
+  - `adversarial`：伪造数字（毛利率 8.73%、收入 CAGR −42.31%、经营现金流 0.12、商誉占权益 35.70% 等）、
+    术语堆砌、以"外部模型推断"绕开给定结构化数据、篇幅很长且含无来源"强烈建议买入/目标价"结论。
+- **评测器**：`eval/real_sample_eval.py`（规则式，不调用 Hy3）按 5 个维度加权评分（0–100）：
+  事实数字一致性 `fact`(0.40)、N/A 处理 `na`(0.20)、关键维度覆盖 `coverage`(0.20)、
+  无来源结论 `sourcing`(0.10)、结构清晰 `structure`(0.10)。逐条写入
+  `results/real_eval/discriminative_validation.csv`（**该目录按仓库约定不入库**）。
+- **结果（2026-09-11 运行）**：各档平均分 **good 97.86 > medium 85.41 > bad 77.75 > adversarial 55.11**，
+  5 项排序假设全部 PASS、8 个窗口无逐条倒挂。典型扣分：bad/adversarial 的"事实错误：某指标引用偏差超 15%"、
+  "N/A 当 0/臆测"、"趋势误读：gold 收入向上但输出称下降"、"无来源结论：含买卖建议且无主表锚定"。
+  `pytest` 206 passed（exit 0），`git diff --check` 通过。
+
 ### 明确不做的内容
 
 - **不调用 Hy3**：真实样本评测管线 `eval/run_real_eval.py` 当前仅完成
