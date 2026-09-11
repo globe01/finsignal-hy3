@@ -5,9 +5,11 @@
 > 规则 Rubric（`eval/rule_rubric.py`）与 Hy3-as-Judge（`eval/hy3_judge.py`）**都不是真值**，
 > 它们只用于和人工标注做一致性对照。
 
-⚠️ **当前状态：人工标注尚未开展（pending）**。本仓库**不伪造任何标注结果**；
-`eval/validity/agreement.py` 在标注数据不足（如少于 2 名标注者）时会明确输出 `PENDING`，
-绝不编造 Cohen's kappa / Spearman 数值。
+✅ **当前状态：人工标注已完成复核**。本仓库保留空白模板
+`eval/validity/annotations_todo.csv`，并提交人工复核后的正式结果
+`eval/validity/annotations_filled.csv` 与 `eval/validity/real_signal_filled.csv`。
+`eval/validity/agreement.py` 在标注数据不足（如少于 2 名标注者）时仍会明确输出 `PENDING`，
+不会编造 Cohen's kappa / Spearman 数值。
 
 ---
 
@@ -81,8 +83,8 @@ python -m eval.validity.export_blind \
 ## 5. 运行方式
 
 ```bash
-# 计算一致性（标注数据不足时输出 PENDING，不报错、不造假）
-python -m eval.validity.agreement --csv eval/validity/annotations.csv
+# 计算一致性（当前正式人工复核结果）
+python -m eval.validity.agreement --csv eval/validity/annotations_filled.csv --json
 
 # 从在线评测结果抽取待标注卡片清单（匿名 case_id + 稳定 card_000 序号，severity_label 留空）
 python -m eval.validity.agreement --emit-template results/online_local/cases_run1.json
@@ -103,10 +105,10 @@ python -m eval.validity.export_blind \
 - **两名标注者 A、B 独立标注同一批卡片**：从盲评导出中选取 **50–60 张卡片**（覆盖各信号类型与
   阴性/注入/长文本/术语/年份错置等类别），A、B 各自独立标注，互不讨论。
 - 同一批卡片建议做 **第 2 轮（round=2）** 重复标注，用于估计标注者内波动（见 §4 重复评估波动）。
-- 标注完成后回填 `eval/validity/annotations.csv`，再跑 `agreement --csv` 计算 Cohen's / Fleiss κ
+- 标注完成后回填 `eval/validity/annotations_filled.csv`，再跑 `agreement --csv` 计算 Cohen's / Fleiss κ
   与 Spearman ρ；标注者 <2 或仅 1 轮时 `agreement.py` 明确输出 `PENDING`，**绝不编造**一致性数值。
-- 当前仓库提供 `eval/validity/annotations_todo.csv` 作为待填表。它只含匿名 case/card 清单和 A/B
-  两名标注者的空白答案位；请填完后另存为 `eval/validity/annotations_filled.csv`，避免把待填表误解为已完成标注。
+- 当前仓库提供 `eval/validity/annotations_todo.csv` 作为可复现空白模板，同时提交
+  `eval/validity/annotations_filled.csv` 作为已经人工复核确认的卡片级标注结果。
 - 盲评导出产物（`results/blind/`）与在线原始产物（`results/online_local/`）均为真实模型输出，
   本地留档、**不入库**（已在 `.gitignore` 中）。
 

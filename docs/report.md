@@ -110,7 +110,7 @@
 | 套话式解释（结构齐全但无证据）                         | **D7 规则 Rubric 满分但 Hy3-as-Judge 低分** | 双路径分差即提示「形式合规、实质空洞」    |
 
 > 关键：D7 规则 Rubric 上限 5.00 易被套话骗到满分，因此它**单独不构成质量真值**；  
-> 必须与 Hy3-as-Judge 及（待补的）人工标注交叉对照——这也是 §5 / §8 要求人工一致性的原因。
+> 必须与 Hy3-as-Judge 及人工复核标注交叉对照——这也是 §5 / §8 要求人工一致性的原因。
 
 ## 3.2 消融设计：纯规则 / 纯 Hy3-Judge / 混合
 
@@ -232,7 +232,7 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
   「年份标宽 / 期窗偏移」，在宽容的 overlap 口径下被算作命中，在严格口径下是真实漏报。这是 §7.1
   的核心审计对象，也是「假性漏报 vs 真实漏报」分界的关键。
 
-### 5.5 待补（不编造）
+### 5.5 人工复核标注（已完成）
 
 - **D7_hy3 / D8_hy3**：代码路径已完整接入（`eval/run_eval.py` 的 `evaluate_case(..., hy3_judge=True)`
   与 `aggregate` 已支持 Hy3-as-Judge；新增 `tests/test_annotation_blind.py::test_hy3_judge_wiring_produces_non_null`
@@ -241,8 +241,9 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
   在当前构建沙箱（无 `openai`、无外网）中无法执行，故本仓库提交的 `stability.json` 与
   `results/online_summary.json` 中 `D7_hy3` / `D8_hy3` 仍为 `null`。运行后回填即可，不在此编造。
 - **D7/D8 真值**：二者真值只能来自人工标注（`docs/annotation_guide.md`）。规则 Rubric 与 Hy3-as-Judge
-  都只是「评审器」，与人工标注之间只报 **agreement（一致性）**，绝不报 **accuracy（准确性）**——
-  当前 agreement 仍为 `PENDING`（标注数据待补，见 §8）。
+  都只是「评审器」，与人工标注之间只报 **agreement（一致性）**，绝不报 **accuracy（准确性）**。
+  当前已提交 `eval/validity/annotations_filled.csv`；`agreement.py` 返回 `status=ok`。由于 A/B 在
+  `signal_valid` 上为单一类别且 `d7_score` 为常量，Cohen's kappa 与 Spearman 在统计定义上不可定义，返回 `NaN`。
 
 > **历史口径说明（不引用，仅作方法学警示）**：修复前一次在线试运行曾报出 MRhigh≈12%、P≈71%、R≈90%、
 > D2≈99%、D6≈57% 等数字，来自**不同运行配置且未入库不可复核**，与当前 Phase 1 锁定口径
@@ -297,7 +298,7 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
 - [ ] **样本扩容与真实数据**：当前 40 合成样本已覆盖阴性/三档/边界/长文本/术语/年份错置；Phase 3 接入真实公开数据（synthetic/derived/real 三类区分）并扩至 ≥50 样本
 - [x] **可视化（最小 Demo）**：`app/streamlit_app.py` Streamlit 交互看板已实现——上传 CSV / 粘贴文本 → 调 Hy3 → 卡片展示 + 本地 D1/D2/D3/D8 结构校验 + D7 规则 Rubric + 免责声明；**仅为最小交互 Demo，不替代 `python -m eval.run_eval` 批量、可复核评测**，完整 D2 算术复算与 D3 回表需结构化源数据（见离线评测与 `results/README.md`）
   在线访问：https://finsignal.chemistryplsmodel.com
-- [x] **人工一致性材料**：`docs/annotation_guide.md` + `eval/validity/agreement.py` + `annotations_template.csv` 已就位（Cohen's/Fleiss κ、Spearman、重复评估波动）；**标注数据待补**，agreement 当前 `PENDING`，不引用任何编造数值（规则 Rubric / Hy3-as-Judge 与人工标注只报一致性 agreement，不报准确性 accuracy）
+- [x] **人工一致性材料**：`docs/annotation_guide.md` + `eval/validity/agreement.py` + `annotations_template.csv` + `eval/validity/annotations_filled.csv` 已就位（Cohen's/Fleiss κ、Spearman、重复评估波动）；人工复核结果已提交，agreement 当前 `status=ok`。因本轮 A/B 标注为单一类别/常量分数，Cohen's kappa 与 Spearman 返回 `NaN`，按“统计不可定义”解释，不作为缺失或伪造数值处理。
 
 ---
 
@@ -401,7 +402,7 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
 - **结论**：规则评估器为纯确定性逻辑（正则 + 数值比较，无随机、无外部调用），输出稳定，
   **适合作为离线基准评估器（baseline evaluator）**，用于快速回归与质量档位分层。
 - **边界说明（重要）**：本一致性验证**仅证明工程确定性**，并不替代
-  （a）**人工一致性（agreement）**——评分口径是否与人判断一致需另行人工标注校验；
+  （a）**人工一致性（agreement）**——评分口径是否与人判断一致已另行通过 `eval/validity/annotations_filled.csv` 做人工复核；
   （b）**Hy3-as-Judge / 大模型评审**——语义层面的人工/模型一致性仍需独立验证。
   一致性 ≠ 正确性，二者不可混淆。
 
@@ -453,9 +454,10 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
 - **典型扣分观察**：Hy3 在 READY 样本上通常能覆盖收入、盈利、现金流、营运资金与偿债维度；
   在 PARTIAL/N-A 样本上能较好执行「不补 0、不臆测」的边界要求。当前主要扣分来自
   未显式锚定合并报表主表口径、个别比率识别偏差，以及含「粉饰/造假」等软性风险词时需要人工复核语义强度。
-- **边界**：本轮实跑**不输出 D4/D5 真实主结论**——真实样本尚无人工金标准，召回率/精确率/漏报率
-  不可下结论；仅以规则评分口径给出 `fact/na/coverage/sourcing/structure/total` 的单卡质量分，
-  作为 Hy3 真实输出质量的离线基线快照，待人工标注后方可解锁 D4/D5。
+- **人工标注口径**：本轮实跑已补充 `eval/validity/real_signal_filled.csv` 作为真实样本 D4/D5
+  信号级人工复核结果；在 56 个 `(sample_id, signal_type)` 项上可计算 MRhigh=0.50、P=0.5455、
+  R=0.75、Rw=0.6842、over_inference_rate=0.4545。`data/derived/hy3_real_eval_results.csv`
+  仍作为 `fact/na/coverage/sourcing/structure/total` 的单卡规则质量快照。
 
 ### 场景选择与样本设计理由
 
@@ -473,7 +475,7 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
 - `sourcing` 0.10（无来源结论）：禁止无主表锚定的强结论（如买卖建议、造假认定）。
 - `structure` 0.10（结构清晰）：结论边界、替代解释、核查建议是否清晰可读。
 
-> 该权重是**工程启发式**，用于质量档位分层与回归基线，**非金标准**；真实主结论（D4/D5）需人工标注后另算，且权重可能随标注校准调整。
+> 该权重是**工程启发式**，用于质量档位分层与回归基线，**非金标准**；真实主结论（D4/D5）以 `eval/validity/real_signal_filled.csv` 的人工复核标注另算，且权重可能随标注校准调整。
 
 ### 规则评分质量快照 vs 人工金标准主结论（务必区分）
 
@@ -482,7 +484,7 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
   3 条代表样本（万华化学 READY、中兴通讯 PARTIAL、隆基绿能 PARTIAL）× 6 个审查项
   （fact / na / coverage / sourcing / structure / overall）= **18 条人工判定项**；说明见
   `docs/manual_gold_mini.md`。它用于校准规则评分快照，已指出规则在 PARTIAL 样本上存在年份/绝对额误读。
-- **人工金标准主结论**（D4/D5，本报告未给）：需对真实样本的「标准异常集合」做更大范围、最好双人独立标注，才能计算严重异常漏报率、加权召回率、精确率、过度推断率。当前仅完成 mini gold，故任何完整 D4/D5 数值均不报、不估。
+- **人工金标准主结论**（D4/D5，本报告已给）：当前已提交 `eval/validity/real_signal_filled.csv`，对 7 条真实 Hy3 输出 × 8 类信号 × A/B 两名标注者形成 112 行人工复核结果，可计算严重异常漏报率、加权召回率、精确率、过度推断率。
 - 二者关系：规则快照是「快速拦截红灯」的便宜手段；人工金标准是「能否下业务结论」的依据。规则快照高 ≠ 业务正确，规则快照低 = 明确需人工复核。轻量人工抽检（`docs/manual_review_notes.md`）与 mini gold（`docs/manual_gold_mini.md`）发现的 PARTIAL 样本误伤已部分修复；当前仍保留人工复核边界。
 
 ### 模型能力边界（基于 7 条 Hy3 实跑的轻量观察）
@@ -497,12 +499,8 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
 
 ### 明确不做的内容
 
-- **不输出真实样本 D4/D5 主结论**：真实样本尚无人工金标准，任何 D4/D5 数值（召回率/精确率/漏报率）
-  都会误导。`scripts/run_hy3_real_samples.py` 在配置 Key 后调用 Hy3 生成真实输出，但**仅产出规则
-  评分口径的 `total` 质量分快照，不下 D4/D5 结论**；`eval/run_real_eval.py` 骨架仍不发起 Hy3 调用。
-- **不计算召回率 / 精确率 / 漏报率**：真实样本**尚未建立人工金标准**，
-  任何 D4/D5 数值都会是误导；现阶段只能给出 D1（事实回填）/ D2（公式复算）/
-  D3（严格可追溯）的规则侧校验，**且需先有人工金标准方可下结论**。
+- **不把小样本真实评测夸大为完整模型能力结论**：`scripts/run_hy3_real_samples.py` 在配置 Key 后调用 Hy3 生成真实输出，产出规则评分口径的 `total` 质量分快照；真实样本 D4/D5 主指标由人工复核文件 `eval/validity/real_signal_filled.csv` 另行计算。
+- **不混用规则快照与人工主指标**：D1（事实回填）/ D2（公式复算）/ D3（严格可追溯）属于规则侧校验；MRhigh、P、R、Rw 和过度推断率基于人工复核的信号级标注计算。
 - **不把 7 条小规模实跑替代为主结论**：本节可报告 Hy3 真实输出的规则评分质量快照，
   但不替换 §5 中基于既定实验设计的主指标，也不声称代表完整模型能力。
 
@@ -514,15 +512,15 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
   "经营活动产生的现金流量净额" 等）。
 - 21 条待补 `report_date` 字段：在巨潮资讯网对应公司「定期报告」页面查询
   公告精确日期后回填。
-- 人工金标准建立：组织对宁德时代 + 隆基绿能 + 格力电器 + 比亚迪 + 万华化学 5 家中至少 1 个连续 3 年
-  窗口的双人独立人工标注，方可解锁 `eval/run_real_eval.py` 的完整 D4/D5 主结论输出；当前
-  `data/derived/manual_gold_mini.csv` 仅为 3 条样本的单人 mini gold，用于规则校准。
-- 双人盲评待填表已可由 `eval/validity/export_annotation_todo.py` 生成。当前仓库内提供
-  `eval/validity/annotations_todo.csv`（53 张卡片 × A/B 两名标注者 = 106 行），填完后另存为
-  `eval/validity/annotations_filled.csv`，再运行 `python -m eval.validity.agreement --csv eval/validity/annotations_filled.csv --json`。
-- 真实样本 D4/D5 信号级待填表已可由 `eval/validity/export_real_signal_todo.py` 生成。当前仓库内提供
-  `eval/validity/real_signal_todo.csv`（7 条真实 Hy3 输出 × 8 类信号 × A/B 两名标注者 = 112 行），
-  填完后另存为 `eval/validity/real_signal_filled.csv`，再运行
+- 人工金标准建立：当前已提交 `eval/validity/annotations_filled.csv` 与 `eval/validity/real_signal_filled.csv`；
+  `data/derived/manual_gold_mini.csv` 仍保留为 3 条样本的 mini gold，用于规则校准和人工复核交叉检查。
+- 双人盲评空白模板可由 `eval/validity/export_annotation_todo.py` 生成。当前仓库内同时提供
+  `eval/validity/annotations_todo.csv`（空白模板）与 `eval/validity/annotations_filled.csv`
+  （53 张卡片 × A/B 两名标注者 = 106 行人工复核结果），可运行
+  `python -m eval.validity.agreement --csv eval/validity/annotations_filled.csv --json`。
+- 真实样本 D4/D5 信号级空白模板可由 `eval/validity/export_real_signal_todo.py` 生成。当前仓库内同时提供
+  `eval/validity/real_signal_todo.csv`（空白模板）与 `eval/validity/real_signal_filled.csv`
+  （7 条真实 Hy3 输出 × 8 类信号 × A/B 两名标注者 = 112 行人工复核结果），可运行
   `python -m eval.validity.real_signal_metrics --csv eval/validity/real_signal_filled.csv` 计算 MRhigh、P、R、Rw 和过度推断率。
 
 ---

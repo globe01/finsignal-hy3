@@ -28,7 +28,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - **开放分析可评审**：使用锚点式 Rubric 评价异常重要性、替代解释、核查建议和结论边界。
 - **会计一致的异常注入**：通过配套传导和报表恒等式检查构造可控评测样本。
 - **阴性与对抗验证**：检查模型是否强行找问题，以及评估器能否识别伪造证据、错误公式和术语堆砌。
-- **评估器消融**：对比 **Hy3 语义评审**（`eval/hy3_judge.py`，逐卡片锚定 Rubric 打分）与 **规则 Rubric**（`eval/rule_rubric.py`，确定性启发式）两条路径的一致性（`compare_judges`）。两者都不是 D7/D8 的真值——规则路径会被套话骗过，Hy3 路径有同族自我偏好；真值需人工标注（待补）。
+- **评估器消融**：对比 **Hy3 语义评审**（`eval/hy3_judge.py`，逐卡片锚定 Rubric 打分）与 **规则 Rubric**（`eval/rule_rubric.py`，确定性启发式）两条路径的一致性（`compare_judges`）。两者都不是 D7/D8 的真值——规则路径会被套话骗过，Hy3 路径有同族自我偏好；正式真值以人工复核后的标注文件为准。
 
 ## 目标异常类型
 
@@ -106,7 +106,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - [x] Hy3-as-Judge 语义评审模块（方案 §5.6，与规则 Rubric 并列，非替代）
 - [x] 离线自检（`--offline` 零依赖）+ 217 项 pytest 单元测试
 - [x] 接入真实上市公司公开数据（Phase 3：8 家 40 份 PDF 已收集，`data/derived/manifest.csv` 来源清单已生成；**宁德时代、隆基绿能、格力电器、比亚迪、万华化学、三一重工、中兴通讯、恒瑞医药 2021-2025 全部完成 5 年结构化摘录**（隆基 2024 使用修订版、2025 商誉原表为空；比亚迪 2021 BS/IS/CF 原表单位元、2022-2025 BS/IS/CF 原表单位千元、NR 表 5 年单位均元；万华化学 2021-2025 BS/IS/CF/NR 原表单位均为元；三一重工 2021-2025 BS/IS/CF/NR 原表单位均为千元；中兴通讯 2021-2025 BS/IS/CF/NR 原表单位均为千元（A/H 股双上市，权益用"股东权益"表述，末段"股东权益合计"行列布局在 2022 年翻转，故 equity 改用资产总计−负债合计核算；中兴商誉极小（千元级，2022/2023/2025 原表列示为"-"按空值处理））；恒瑞医药 2021-2025 BS/IS/CF/NR 原表单位均为元（无需换算），但 2023 年合并BS部分行（资产总计/非流动资产合计）列布局翻转（标签居中、本期列在末位），已用"标签相对金额位置"法统一判定本期列；恒瑞商誉 5 年合并BS主表未列示、短期借款仅 2022 合并BS主表有值（2023 当期为"-"、2021/2024/2025 合并BS主表未列示），均按空值保留不填 0）；8 家已全部写入 `data/derived/real_financials_2021_2025.csv`（40 行 × 21 列）。真实样本评测管线 `eval/run_real_eval.py` 仅完成骨架，不出 D4/D5 主结论。详见 [docs/real_data_sources.md](docs/real_data_sources.md) §7）
-- [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 双人盲评待填表 `eval/validity/annotations_todo.csv` + 真实样本信号级待填表 `eval/validity/real_signal_todo.csv`；标注数据待人工填写）
+- [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 双人盲评模板 `eval/validity/annotations_todo.csv` + 人工复核结果 `eval/validity/annotations_filled.csv` + 真实样本信号级人工标注 `eval/validity/real_signal_filled.csv`）
 - [x] Streamlit 最小可用 Demo（`app/streamlit_app.py`，上传/粘贴 → Hy3 → 卡片 + D1/D2/D3/D8 校验）
 - [x] 2 分钟以内 Demo 视频（[`demo.mp4`](demo.mp4)）
 
@@ -176,12 +176,12 @@ python -m eval.summary_online --in-dir results/online_local \
 python -m eval.validity.export_blind --cases results/online_local/cases_run1.json \
     --out results/blind/cases_run1_blind.json
 
-# 生成 A/B 双人标注待填表；填完后用 agreement.py 计算一致性
+# 生成 A/B 双人标注待填表；正式人工复核结果见 annotations_filled.csv
 python -m eval.validity.export_annotation_todo --cases results/online_local/cases_run1.json \
     --out eval/validity/annotations_todo.csv
 python -m eval.validity.agreement --csv eval/validity/annotations_filled.csv --json
 
-# 生成真实样本 D4/D5 信号级待填表；填完后计算 MRhigh/P/R/Rw
+# 生成真实样本 D4/D5 信号级待填表；正式人工复核结果见 real_signal_filled.csv
 python -m eval.validity.export_real_signal_todo --outputs data/derived/hy3_real_outputs.jsonl \
     --out eval/validity/real_signal_todo.csv
 python -m eval.validity.real_signal_metrics --csv eval/validity/real_signal_filled.csv
@@ -240,18 +240,19 @@ finsignal-hy3/
 
 > **当前状态**：已完成 7 条 Hy3 真实输出小规模实跑；修复文本误伤后的规则评分均分 `94.00`。
 > READY 样本 4 条，均分 `96.25`；PARTIAL/N-A 样本 3 条，均分 `91.00`。
-> 该脚本仅产出规则评分快照，**不输出真实样本 D4/D5 主结论**（真实样本尚缺人工金标准）。
+> 该脚本产出规则评分快照；真实样本 D4/D5 主指标由人工复核文件 `eval/validity/real_signal_filled.csv` 计算。
+> 当前人工复核后的真实样本信号级指标：MRhigh=`0.50`、P=`0.5455`、R=`0.75`、Rw=`0.6842`、over_inference_rate=`0.4545`。
 > 轻量人工抽检见 [`docs/manual_review_notes.md`](docs/manual_review_notes.md)；本轮已修复年份、金额单位和软性风险词导致的主要误伤，规则快照仍不等同于业务真值。
 > 小型人工金标准见 [`docs/manual_gold_mini.md`](docs/manual_gold_mini.md) 与
 > `data/derived/manual_gold_mini.csv`（3 条代表样本 × 6 个审查项 = 18 条人工判定项；单人标注，
-> 只作规则校准，不计算完整 D4/D5）。
+> 只作规则校准；完整 D4/D5 以 `eval/validity/real_signal_filled.csv` 为准）。
 
 ## 提交前材料
 
 - 交付清单见 [`docs/final_submission_checklist.md`](docs/final_submission_checklist.md)。
 - 2 分钟 Demo 视频见 [`demo.mp4`](demo.mp4)，视频脚本见 [`docs/demo_video_script.md`](docs/demo_video_script.md)。
-- 双人盲评待填表见 `eval/validity/annotations_todo.csv`；该文件只含空白标注位，不冒充已完成人工一致性。
-- 真实样本 D4/D5 信号级待填表见 `eval/validity/real_signal_todo.csv`；填完 `real_signal_filled.csv` 后才计算真实样本主指标。
+- 双人盲评人工复核结果见 `eval/validity/annotations_filled.csv`；空白模板保留为 `eval/validity/annotations_todo.csv`，便于复现标注流程。
+- 真实样本 D4/D5 信号级人工标注见 `eval/validity/real_signal_filled.csv`；基于该文件可计算真实样本主指标。
 
 ## 免责声明
 

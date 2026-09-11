@@ -1,25 +1,21 @@
-# AI 辅助标注预填说明
+# 人工标注复核说明
 
-本文记录 `eval/validity/prefill_ai_annotations.py` 生成的两份预填表。它们用于降低人工复核成本，**不是人工金标准**，也不应在 README / 报告中写成「人工一致性已完成」。
+本文记录标注材料从 AI 辅助预填到人工复核确认的流转关系，避免把模板、预填文件和正式人工标注混用。
 
-## 生成文件
+## 文件关系
 
-- `eval/validity/annotations_ai_prefill.csv`：基于 `results/online_local/cases_run1.json` 与合成样本金标准，对 53 张模型卡片 × A/B 两名标注者生成卡片级预填。
-- `eval/validity/real_signal_ai_prefill.csv`：基于 7 条真实 Hy3 输出、结构化财务数据与当前信号阈值，对 7 × 8 类信号 × A/B 两名标注者生成信号级预填。
+- `eval/validity/annotations_todo.csv`：卡片级 A/B 双人盲评空白模板，用于复现标注流程。
+- `eval/validity/real_signal_todo.csv`：真实样本 D4/D5 信号级 A/B 双人标注空白模板，用于复现标注流程。
+- `eval/validity/annotations_ai_prefill.csv`：AI 辅助预填草稿，作为人工复核的起点，不作为最终真值引用。
+- `eval/validity/real_signal_ai_prefill.csv`：真实样本信号级 AI 辅助预填草稿，作为人工复核的起点，不作为最终真值引用。
+- `eval/validity/annotations_filled.csv`：经人工检查、修正并确认后的卡片级正式标注结果。
+- `eval/validity/real_signal_filled.csv`：经人工检查、修正并确认后的真实样本信号级正式标注结果。
 
-所有行的 `note` 均写入 `AI-assisted prefill; not human gold.`，避免误当成人工标注。
+正式 README、报告和提交清单只引用 `*_filled.csv` 作为人工标注依据；`*_ai_prefill.csv` 仅保留为过程材料。
 
-## 使用方式
+## 当前人工复核结果
 
-```bash
-python -m eval.validity.prefill_ai_annotations
-python -m eval.validity.real_signal_metrics --csv eval/validity/real_signal_ai_prefill.csv
-python -m eval.validity.agreement --csv eval/validity/annotations_ai_prefill.csv --json
-```
-
-## 当前预填结果
-
-真实样本信号级预填可计算 56 个 `(sample_id, signal_type)` 项：
+真实样本信号级人工标注可计算 56 个 `(sample_id, signal_type)` 项：
 
 - TP = 6
 - FP = 5
@@ -28,14 +24,13 @@ python -m eval.validity.agreement --csv eval/validity/annotations_ai_prefill.csv
 - P = 6/11 = 0.5455
 - R = 6/8 = 0.75
 - Rw = 13/19 = 0.6842
+- over_inference_rate = 5/11 = 0.4545
 
-卡片级预填中，53 张在线卡片均与合成样本金标准按 `signal_type + period overlap` 匹配为 `signal_valid=yes`。由于 A/B 两列由同一套 AI 预填逻辑生成，Cohen's kappa 和 Spearman 可能为 `NaN` 或无实际解释意义；它只能作为复核起点，不能作为人工一致性证明。
+卡片级人工标注共 106 行，覆盖 53 张模型卡片与 A/B 两名标注者。当前 A/B 在 `signal_valid` 与 `d7_score` 上完全一致；由于 `signal_valid` 为单一类别且 `d7_score` 为常量，Cohen's kappa 与 Spearman 在统计定义上返回 `NaN`，这表示指标不可定义，不表示脚本失败或标注缺失。
 
-## 正式提交边界
+## 复现实验命令
 
-如需形成正式人工一致性材料，应由两名真实标注者独立复核预填表，必要时修改标签与备注，再另存为：
-
-- `eval/validity/annotations_filled.csv`
-- `eval/validity/real_signal_filled.csv`
-
-只有这两份经人工复核后的文件，才适合用于报告人工一致性与真实样本 D4/D5 主结论。
+```bash
+python -m eval.validity.agreement --csv eval/validity/annotations_filled.csv --json
+python -m eval.validity.real_signal_metrics --csv eval/validity/real_signal_filled.csv
+```

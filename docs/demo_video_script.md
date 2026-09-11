@@ -58,7 +58,7 @@ streamlit run app/streamlit_app.py
 
 旁白：
 
-> 评估方法已经做了判别力验证和一致性验证：good、medium、bad、adversarial 四档能被区分，同一评估器重复三轮分数完全一致。真实样本部分保留人工标注接口，不伪造人工一致性结果。
+> 评估方法已经做了判别力验证和一致性验证：good、medium、bad、adversarial 四档能被区分，同一评估器重复三轮分数完全一致。真实样本部分已补充人工复核后的标注文件，可计算 MRhigh、精确率、召回率和加权召回。
 
 ## 建议录制参数
 
@@ -66,4 +66,3 @@ streamlit run app/streamlit_app.py
 - 时长：控制在 110 秒左右，留 10 秒余量。
 - 鼠标操作：少切窗口，优先展示 Demo、报告、结果 CSV 三个画面。
 - 视频文件名建议：`finsignal-hy3-demo.mp4` 或 `finsignal-hy3-demo.gif`。
-

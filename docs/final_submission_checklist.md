@@ -20,7 +20,7 @@
 
 - 任务一要求的 5 个以上维度已覆盖：D1 事实引用、D2 公式复算、D3 可追溯、D4 覆盖/召回、D5 误报控制、D6 严重度一致、D7 解释与边界、D8 安全合规。
 - 主指标为严重异常漏报率 MRhigh，支撑指标包括加权召回、精确率、数值准确、公式正确、严格可追溯、严重度一致和合规率。
-- D7/D8 同时提供规则 Rubric 与 Hy3-as-Judge 两条评审路径，二者只报告一致性，不冒充人工真值。
+- D7/D8 同时提供规则 Rubric 与 Hy3-as-Judge 两条评审路径，正式真值以人工复核后的 `eval/validity/annotations_filled.csv` 为准。
 
 ## 4. 评测样本
 
@@ -33,8 +33,8 @@
 - 判别力验证：`data/derived/discriminative_validation.csv`，32 条 fixture，当前排序为 good 100.00 > medium 85.41 > bad 79.89 > adversarial 57.09，排序假设全部 PASS。
 - 一致性验证：`data/derived/consistency_validation.csv`，32 条 fixture 重复 3 轮，共 96 行，total 分数 max_delta = 0。
 - 真实 Hy3 快照：`data/derived/hy3_real_eval_results.csv`，7 条样本当前规则评分均分 94.00，READY 均分 96.25，PARTIAL/N-A 均分 91.00。
-- 人工一致性：`eval/validity/annotations_todo.csv` 已生成 53 张卡片 × A/B 两名标注者 = 106 行待填表；填完后运行 `eval.validity.agreement` 计算 Cohen's kappa / Spearman。当前不伪造人工一致性数值。
-- 真实样本 D4/D5：`eval/validity/real_signal_todo.csv` 已生成 7 条真实 Hy3 输出 × 8 类信号 × A/B 两名标注者 = 112 行待填表；填完后运行 `eval.validity.real_signal_metrics` 计算 MRhigh/P/R/Rw。当前不伪造真实样本主指标。
+- 人工一致性：`eval/validity/annotations_filled.csv` 已提交 53 张卡片 × A/B 两名标注者 = 106 行人工复核结果；`agreement.py` 状态为 `ok`。因当前 `signal_valid` 为单一类别且 `d7_score` 为常量，Cohen's kappa / Spearman 统计上不可定义并返回 `NaN`，不代表缺失。
+- 真实样本 D4/D5：`eval/validity/real_signal_filled.csv` 已提交 7 条真实 Hy3 输出 × 8 类信号 × A/B 两名标注者 = 112 行人工复核结果；指标为 MRhigh=0.50、P=0.5455、R=0.75、Rw=0.6842、over_inference_rate=0.4545。
 
 ## 6. 分析报告
 
@@ -53,7 +53,8 @@ python -m eval.run_eval --offline
 python scripts/run_hy3_real_samples.py --score-existing
 python -m eval.real_sample_eval
 python -m eval.consistency_validation
-python -m eval.validity.real_signal_metrics --csv eval/validity/real_signal_todo.csv
+python -m eval.validity.agreement --csv eval/validity/annotations_filled.csv --json
+python -m eval.validity.real_signal_metrics --csv eval/validity/real_signal_filled.csv
 python -m pytest -q
 git diff --check
 ```
