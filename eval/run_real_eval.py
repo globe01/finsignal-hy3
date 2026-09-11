@@ -1,226 +1,176 @@
-"""真实公开样本评测骨架（Phase 3 规划版）。
+"""Phase 3 real-sample evaluation planner.
 
-⚠ 本脚本当前仅完成**窗口规划与状态上报**，**不调用 Hy3**，**不输出 D4/D5
-主结论**。仅在具备人工金标准后，下列限制方可解除：
+This module is intentionally offline:
+- it does not call Hy3;
+- it does not output D4/D5 main conclusions;
+- it only reports sample coverage and metric availability.
 
-- 不报召回率 / 精确率 / 漏报率（MRhigh）：缺金标准时这些数字无意义。
-- 不调 Hy3 扫描：缺 API Key 时调用会失败，且无金标准时也无法判定输出。
-- 不报 Hy3-as-Judge 结果：同上。
-
-功能（已实现）：
-- 读取 `data/derived/real_financials_2021_2025.csv`；
-- 按公司生成滑动 3 年窗口（2021-2023, 2022-2024, 2023-2025），每家公司
-  至多 3 个窗口；
-- 对每个窗口生成 plan JSON（窗口字段清单、缺失字段告警、单位口径、
-  期望的扫描步骤）写入 `results/real_eval/plan.json`；
-- 打印 `pending` 状态与所需的前置条件（人工金标准 / Hy3 Key）。
-
-用法：
-  python -m eval.run_real_eval --list              # 列出当前可识别的窗口与缺失字段
-  python -m eval.run_real_eval --plan              # 写 plan.json 并打印 pending 状态
-  python -m eval.run_real_eval --company 宁德时代   # 仅规划指定公司
-
-后续启用条件（不在本脚本内）：
-1. 人工金标准：以「连续 3 年窗口 + 异常卡片预期」为单位组织标注；
-2. Hy3 接入：填写 `.env`（HY3_BASE_URL / HY3_API_KEY / HY3_MODEL）；
-3. 在 `eval/run_eval.py` 已有的 D1/D2/D3/D7/D8 规则侧基础上扩展真实样本
-   评测流程，并在 plan 中标注「gold_standard_available=true」后启用主结论。
+Run `scripts/build_real_eval_samples.py` first to generate
+`data/derived/real_eval_samples.jsonl`.
 """
 
 from __future__ import annotations
 
 import argparse
-import csv
 import json
-import os
-from dataclasses import dataclass, field, asdict
+from collections import Counter
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+from typing import Any
+
 
 ROOT = Path(__file__).resolve().parent.parent
-CSV_PATH = ROOT / "data/derived/real_financials_2021_2025.csv"
+SAMPLE_PATH = ROOT / "data/derived/real_eval_samples.jsonl"
 OUT_DIR = ROOT / "results/real_eval"
 PLAN_PATH = OUT_DIR / "plan.json"
 
-# 必备字段；任一窗口若这些字段有空值则该窗口降级为「不可用」并记入 plan。
-REQUIRED_FIELDS = [
-    "revenue", "cogs", "net_profit", "cfo",
-    "accounts_receivable", "inventory", "goodwill",
-    "current_assets", "current_liabilities", "short_borrow",
-    "cash", "equity", "nonrecurring",
-]
-
-# 滑动窗口定义：(窗口名, 起年, 终年)
-WINDOWS = [
-    ("2021-2023", 2021, 2023),
-    ("2022-2024", 2022, 2024),
-    ("2023-2025", 2023, 2025),
-]
-
 
 @dataclass
-class WindowPlan:
+class RealSamplePlan:
+    sample_id: str
     company: str
     stock_code: str
-    window: str
-    years: list[int]
-    fields: dict  # 字段 -> {"value": str, "source": str, "unit": "元"}
+    window_years: list[int]
+    status: str
+    calculable_metrics: int
+    na_metrics: int
+    na_metric_names: list[str] = field(default_factory=list)
     missing_fields: list[str] = field(default_factory=list)
-    status: str = "pending"   # pending / partial / ready
-    prerequisites: list[str] = field(default_factory=list)
-    notes: str = ""
-
-
-def load_csv():
-    """读取结构化财务 CSV，返回 {company: {year: row}}。"""
-    if not CSV_PATH.exists():
-        raise SystemExit(f"未找到 {CSV_PATH}，请先运行 scripts/extract_catl_financials.py")
-    rows_by_company: dict[str, dict[int, dict]] = {}
-    with open(CSV_PATH, newline="", encoding="utf-8") as f:
-        for row in csv.DictReader(f):
-            co = row["company"].strip()
-            if not co:
-                continue
-            try:
-                year = int(row["year"])
-            except ValueError:
-                continue
-            rows_by_company.setdefault(co, {})[year] = row
-    return rows_by_company
-
-
-def build_window_plan(company: str, by_year: dict[int, dict], window_name: str,
-                      start: int, end: int) -> WindowPlan:
-    """构建窗口规划。
-
-    判定口径（重要，与 Phase 3 当前真实进度一致）：
-    1. 窗口内**每个年份的每个 REQUIRED_FIELDS 都必须非空**，才记为 READY。
-       仅取最近一年非空值会掩盖该字段在前几年的真实缺失。
-    2. 缺失字段以 `year.field` 格式记录（如 `2025.goodwill`），便于定位补齐。
-    3. 状态机：
-       - 0 缺失         → READY    （字段完整）
-       - 1 缺失         → PARTIAL  （少量待补，已具备初步可用性）
-       - ≥2 缺失        → PENDING  （暂不可用）
-
-    注意：本脚本**不调用 Hy3**，**不输出 D4/D5 主结论**——这些限制见模块
-    顶部的 docstring，需待人工金标准与 .env 三项就绪后才解除。
-    """
-    years = list(range(start, end + 1))
-    fields: dict = {}        # field -> list[{value, year, unit}]（按年序列）
-    missing: list[str] = []  # year.field 格式
-    src_pages: list[str] = []
-
-    for y in years:
-        row = by_year.get(y) or {}
-        for k in REQUIRED_FIELDS:
-            val = (row.get(k) or "").strip()
-            if not val:
-                missing.append(f"{y}.{k}")
-            else:
-                fields.setdefault(k, []).append({
-                    "value": val, "year": y, "unit": "元",
-                })
-
-    # 收集所有年份的 source_table_or_page（按年份留痕）
-    for y in years:
-        row = by_year.get(y) or {}
-        src = row.get("source_table_or_page", "")
-        if src and src not in src_pages:
-            src_pages.append(src)
-
-    if not missing:
-        status = "ready"
-    elif len(missing) == 1:
-        status = "partial"
-    else:
-        status = "pending"
-
-    prereqs = []
-    if status != "ready":
-        prereqs.append(f"补齐缺失字段: {', '.join(missing) or '(无)'}")
-    prereqs.append("建立该窗口的人工金标准（异常卡片预期清单）")
-    prereqs.append("确认 .env 已配置 HY3_BASE_URL / HY3_API_KEY / HY3_MODEL")
-
-    head = by_year.get(years[-1]) or (by_year.get(years[0]) or {})
-    return WindowPlan(
-        company=company,
-        stock_code=head.get("stock_code", ""),
-        window=window_name,
-        years=years,
-        fields=fields,
-        missing_fields=missing,
-        status=status,
-        prerequisites=prereqs,
-        notes=("缺人工金标准前，不输出 D4 召回率 / D5 精确率 / MRhigh；"
-               "本骨架只完成窗口规划与字段完整性检查。"),
+    note: str = (
+        "Offline coverage plan only. No Hy3 call and no D4/D5 real-eval "
+        "main conclusion before human gold standards are available."
     )
 
 
-def list_windows(only_company: str | None = None) -> list[WindowPlan]:
-    data = load_csv()
-    plans: list[WindowPlan] = []
-    for company, by_year in data.items():
-        if only_company and company != only_company:
-            continue
-        # 至少要有 3 个连续年份才生成窗口
-        years_available = sorted(by_year.keys())
-        for wname, s, e in WINDOWS:
-            if not all(y in years_available for y in range(s, e + 1)):
+def load_samples() -> list[dict[str, Any]]:
+    if not SAMPLE_PATH.exists():
+        raise SystemExit(
+            f"未找到 {SAMPLE_PATH.relative_to(ROOT)}。"
+            "请先运行: .venv/bin/python scripts/build_real_eval_samples.py"
+        )
+
+    samples: list[dict[str, Any]] = []
+    with open(SAMPLE_PATH, encoding="utf-8") as f:
+        for lineno, line in enumerate(f, 1):
+            line = line.strip()
+            if not line:
                 continue
-            plans.append(build_window_plan(company, by_year, wname, s, e))
+            try:
+                samples.append(json.loads(line))
+            except json.JSONDecodeError as exc:
+                raise SystemExit(f"{SAMPLE_PATH}:{lineno} JSON 解析失败: {exc}") from exc
+    return samples
+
+
+def to_plan(sample: dict[str, Any]) -> RealSamplePlan:
+    coverage = sample.get("coverage", {})
+    return RealSamplePlan(
+        sample_id=sample["sample_id"],
+        company=sample["company"],
+        stock_code=sample["stock_code"],
+        window_years=list(sample["window_years"]),
+        status=sample.get("sample_status", "BLOCKED"),
+        calculable_metrics=int(coverage.get("calculable_metrics", 0)),
+        na_metrics=int(coverage.get("na_metrics", 0)),
+        na_metric_names=list(coverage.get("na_metric_names", [])),
+        missing_fields=list(sample.get("missing_fields", [])),
+    )
+
+
+def list_plans(only_company: str | None = None) -> list[RealSamplePlan]:
+    samples = load_samples()
+    plans = [to_plan(sample) for sample in samples]
+    if only_company:
+        plans = [plan for plan in plans if plan.company == only_company]
     return plans
 
 
-def write_plan(plans: list[WindowPlan]) -> None:
+def summarize(plans: list[RealSamplePlan]) -> dict[str, Any]:
+    status_counts = Counter(plan.status for plan in plans)
+    company_counts = Counter(plan.company for plan in plans)
+    na_counts = Counter(
+        metric
+        for plan in plans
+        for metric in plan.na_metric_names
+    )
+    return {
+        "sample_count": len(plans),
+        "company_count": len(company_counts),
+        "windows_by_company": dict(sorted(company_counts.items())),
+        "status_counts": dict(sorted(status_counts.items())),
+        "na_metric_counts": dict(sorted(na_counts.items())),
+    }
+
+
+def write_plan(plans: list[RealSamplePlan]) -> None:
     OUT_DIR.mkdir(parents=True, exist_ok=True)
     payload = {
-        "status": "pending",
-        "phase": "Phase 3 真实公开样本评测（骨架）",
-        "csv_source": str(CSV_PATH.relative_to(ROOT)),
-        "note": "缺人工金标准前不输出 D4/D5 主结论；本文件仅描述窗口与缺失字段。",
-        "windows": [asdict(p) for p in plans],
+        "phase": "Phase 3 真实公开样本评测（离线覆盖计划）",
+        "sample_source": str(SAMPLE_PATH.relative_to(ROOT)),
+        "summary": summarize(plans),
+        "limitations": [
+            "不调用 Hy3。",
+            "未建立人工金标准前不输出 D4/D5 真实评测主结论。",
+            "字段缺失导致的指标标 N/A，不补 0、不从附注或上年数回填。",
+        ],
+        "windows": [asdict(plan) for plan in plans],
     }
     with open(PLAN_PATH, "w", encoding="utf-8") as f:
         json.dump(payload, f, ensure_ascii=False, indent=2)
 
 
-def main():
-    ap = argparse.ArgumentParser(description="真实公开样本评测骨架（Phase 3 规划版）")
-    ap.add_argument("--list", action="store_true", help="列出窗口与字段缺失情况")
-    ap.add_argument("--plan", action="store_true", help="写 plan.json 并打印 pending 状态")
-    ap.add_argument("--company", type=str, default=None, help="仅规划指定公司")
-    args = ap.parse_args()
+def render_list(plans: list[RealSamplePlan]) -> None:
+    summary = summarize(plans)
+    print(
+        f"识别到 {summary['sample_count']} 个真实评测样本"
+        f"（来自 {summary['company_count']} 家公司）。\n"
+    )
 
-    plans = list_windows(only_company=args.company)
-    if not plans:
-        print(f"无窗口可规划。请先在 {CSV_PATH.relative_to(ROOT)} 录入至少一家公司 3 年数据。")
-        return
-
-    print(f"识别到 {len(plans)} 个窗口（来自 {len({p.company for p in plans})} 家公司）。\n")
-    for p in plans:
-        if not p.missing_fields:
-            miss = "字段齐全"
+    for plan in plans:
+        years = f"{plan.window_years[0]}-{plan.window_years[-1]}"
+        if plan.na_metrics:
+            na = f"N/A {plan.na_metrics} 指标: {', '.join(plan.na_metric_names)}"
         else:
-            miss_preview = ", ".join(p.missing_fields)
-            # PARTIAL 1 个字段全部打印；PENDING (≥2) 最多展示前 5 个 + 其余数量
-            if len(p.missing_fields) <= 5:
-                miss = f"缺 {len(p.missing_fields)} 字段: {miss_preview}"
-            else:
-                miss = (f"缺 {len(p.missing_fields)} 字段: "
-                        f"{miss_preview}, …（仅展示前 5）")
-        print(f"  {p.company} {p.window}  [{p.status.upper()}]  {miss}")
+            na = "无 N/A 指标"
 
-    if args.list and not args.plan:
-        print("\n（仅列表模式，未写 plan.json）")
+        if plan.missing_fields:
+            missing_preview = ", ".join(plan.missing_fields[:5])
+            if len(plan.missing_fields) > 5:
+                missing_preview += f", ...（共 {len(plan.missing_fields)} 字段）"
+            missing = f"缺失字段: {missing_preview}"
+        else:
+            missing = "字段齐全"
+
+        print(
+            f"  {plan.company} {years}  [{plan.status}]  "
+            f"可评测 {plan.calculable_metrics}/10；{na}；{missing}"
+        )
+
+    print("\n汇总：")
+    print(f"  status: {summary['status_counts']}")
+    print(f"  windows_by_company: {summary['windows_by_company']}")
+    print(f"  na_metric_counts: {summary['na_metric_counts']}")
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Phase 3 真实样本离线评测计划")
+    parser.add_argument("--list", action="store_true", help="列出样本状态与 N/A 指标")
+    parser.add_argument("--plan", action="store_true", help="写 results/real_eval/plan.json")
+    parser.add_argument("--company", type=str, default=None, help="仅查看指定公司")
+    args = parser.parse_args()
+
+    plans = list_plans(only_company=args.company)
+    if not plans:
+        print("无匹配样本。")
         return
 
-    write_plan(plans)
-    print(f"\n已写 {PLAN_PATH.relative_to(ROOT)}")
-    print("\n当前为 pending 状态。解除限制需满足：")
-    print("  1) 全部窗口字段齐全或标注缺失字段的合理处理方式；")
-    print("  2) 建立对应窗口的人工金标准；")
-    print("  3) 配置 .env 后接入 Hy3 扫描。")
-    print("  4) 在本脚本中按 plan 调用 app.scan 与 eval.run_eval 现有规则路径，"
-          "并将 D4/D5 限人工金标准可用时才允许输出。")
+    render_list(plans)
+
+    if args.plan:
+        write_plan(plans)
+        print(f"\n已写 {PLAN_PATH.relative_to(ROOT)}")
+    elif args.list:
+        print("\n（仅列表模式，未写 plan.json）")
 
 
 if __name__ == "__main__":
