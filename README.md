@@ -14,7 +14,10 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 
 项目同时设计一套“漏报敏感型”混合评估方法，不只检查模型报出的异常是否正确，还会显式统计模型遗漏了哪些标准异常，并通过规则复算、注入实验、阴性对照、人工标注和 Hy3 语义评审验证评估方法的可靠性。
 
-在线 Demo：https://finsignal.chemistryplsmodel.com
+## 在线 Demo 与演示视频
+
+- 在线 Demo：https://finsignal.chemistryplsmodel.com
+- Demo 视频：[`demo.mp4`](demo.mp4)，2 分钟以内，展示从选择真实财务样本、调用 Hy3 生成异常信号卡片，到查看 D1/D2/D3/D8 自动校验与评估结果的完整流程。
 
 本项目中的“财务异常”仅指满足预设条件、值得进一步核查的财务关注信号，不代表相关公司存在财务造假，也不构成投资建议。
 
@@ -105,6 +108,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - [x] 接入真实上市公司公开数据（Phase 3：8 家 40 份 PDF 已收集，`data/derived/manifest.csv` 来源清单已生成；**宁德时代、隆基绿能、格力电器、比亚迪、万华化学、三一重工、中兴通讯、恒瑞医药 2021-2025 全部完成 5 年结构化摘录**（隆基 2024 使用修订版、2025 商誉原表为空；比亚迪 2021 BS/IS/CF 原表单位元、2022-2025 BS/IS/CF 原表单位千元、NR 表 5 年单位均元；万华化学 2021-2025 BS/IS/CF/NR 原表单位均为元；三一重工 2021-2025 BS/IS/CF/NR 原表单位均为千元；中兴通讯 2021-2025 BS/IS/CF/NR 原表单位均为千元（A/H 股双上市，权益用"股东权益"表述，末段"股东权益合计"行列布局在 2022 年翻转，故 equity 改用资产总计−负债合计核算；中兴商誉极小（千元级，2022/2023/2025 原表列示为"-"按空值处理））；恒瑞医药 2021-2025 BS/IS/CF/NR 原表单位均为元（无需换算），但 2023 年合并BS部分行（资产总计/非流动资产合计）列布局翻转（标签居中、本期列在末位），已用"标签相对金额位置"法统一判定本期列；恒瑞商誉 5 年合并BS主表未列示、短期借款仅 2022 合并BS主表有值（2023 当期为"-"、2021/2024/2025 合并BS主表未列示），均按空值保留不填 0）；8 家已全部写入 `data/derived/real_financials_2021_2025.csv`（40 行 × 21 列）。真实样本评测管线 `eval/run_real_eval.py` 仅完成骨架，不出 D4/D5 主结论。详见 [docs/real_data_sources.md](docs/real_data_sources.md) §7）
 - [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 双人盲评待填表 `eval/validity/annotations_todo.csv` + 真实样本信号级待填表 `eval/validity/real_signal_todo.csv`；标注数据待人工填写）
 - [x] Streamlit 最小可用 Demo（`app/streamlit_app.py`，上传/粘贴 → Hy3 → 卡片 + D1/D2/D3/D8 校验）
+- [x] 2 分钟以内 Demo 视频（[`demo.mp4`](demo.mp4)）
 
 完整方案见 [docs/proposal.md](docs/proposal.md)。
 
@@ -245,7 +249,7 @@ finsignal-hy3/
 ## 提交前材料
 
 - 交付清单见 [`docs/final_submission_checklist.md`](docs/final_submission_checklist.md)。
-- 2 分钟 Demo 视频脚本见 [`docs/demo_video_script.md`](docs/demo_video_script.md)。
+- 2 分钟 Demo 视频见 [`demo.mp4`](demo.mp4)，视频脚本见 [`docs/demo_video_script.md`](docs/demo_video_script.md)。
 - 双人盲评待填表见 `eval/validity/annotations_todo.csv`；该文件只含空白标注位，不冒充已完成人工一致性。
 - 真实样本 D4/D5 信号级待填表见 `eval/validity/real_signal_todo.csv`；填完 `real_signal_filled.csv` 后才计算真实样本主指标。
 
