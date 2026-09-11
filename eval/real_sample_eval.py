@@ -58,8 +58,33 @@ def parse_amounts(text: str):
     return out
 
 
+def _looks_like_year(tok: str, window: str, end_pos: int) -> bool:
+    """判断数字是否更像年份而不是比率。"""
+    stripped = tok.replace(",", "")
+    if not stripped.isdigit():
+        return False
+    try:
+        year = int(stripped)
+    except ValueError:
+        return False
+    if not 1900 <= year <= 2100:
+        return False
+    tail = window[end_pos:end_pos + 3]
+    return True if not tail or tail.startswith(("年", "-", "/", "至", "、", "，", ",", " ")) else False
+
+
+def _has_amount_unit(window: str, end_pos: int) -> bool:
+    """比率解析时剔除金额绝对额，避免把 12.65 亿元当成 12.65 倍。"""
+    tail = window[end_pos:end_pos + 4].strip()
+    return tail.startswith(("万亿", "亿元", "亿", "万元", "万", "元", "千元"))
+
+
 def parse_ratios_near(keyword: str, text: str):
-    """在 keyword 之后近邻文本内提取候选比率；跳过 2021 年这类年份。"""
+    """在 keyword 之后近邻文本内提取候选比率。
+
+    真实模型输出常把金额折算成「亿元」、同时列出年份；这些数字如果被当成比率，
+    会造成 PARTIAL 样本的 false positive。这里仅保留百分比或合理量级的小数/倍数。
+    """
     pos = text.find(keyword)
     if pos < 0:
         return []
@@ -71,7 +96,7 @@ def parse_ratios_near(keyword: str, text: str):
             val = float(tok)
         except ValueError:
             continue
-        if 1900 <= val <= 2100 and window[m.end(): m.end() + 1] == "年":
+        if _looks_like_year(tok, window, m.end()) or _has_amount_unit(window, m.end()):
             continue
         if m.group("pct"):
             val = val / 100.0
@@ -98,8 +123,9 @@ DIMENSIONS = {
 
 GROUNDING = ["基于合并报表主表", "基于给定的结构化", "基于给定", "基于上述",
              "依据给定", "上述结构化数据", "口径与 expected_calculations", "与 expected_calculations 一致"]
-UNSOURCED_RISK = ["建议买入", "建议卖出", "买入", "卖出", "目标价", "强烈推荐",
-                  "强烈建议买入", "存在造假风险", "财务造假", "虚增", "粉饰"]
+UNSOURCED_HARD_RISK = ["建议买入", "建议卖出", "买入", "卖出", "目标价", "强烈推荐", "强烈建议买入"]
+UNSOURCED_SOFT_RISK = ["存在造假风险", "财务造假", "虚增", "粉饰", "操纵", "舞弊"]
+NEGATIONS = ["不", "不能", "无法", "不可", "不应", "不构成", "不足以", "未", "没有", "不得"]
 
 NA_ACK = ["N/A", "未列示", "未披露", "无法计算", "不适用", "缺失", "不可得", "不补"]
 
@@ -110,6 +136,38 @@ def has_phrase_near(keyword, phrases, text, before=25, after=70):
         return False
     window = text[max(0, pos - before): pos + after]
     return any(p in window for p in phrases)
+
+
+def _has_negation_before(text: str, pos: int, width: int = 12) -> bool:
+    window = text[max(0, pos - width):pos]
+    return any(n in window for n in NEGATIONS)
+
+
+def _risk_level(text: str) -> str | None:
+    """返回 hard / soft / None。否定式免责声明不算风险结论。"""
+    for phrase in UNSOURCED_HARD_RISK:
+        pos = text.find(phrase)
+        if pos >= 0 and not _has_negation_before(text, pos):
+            return "hard"
+    for phrase in UNSOURCED_SOFT_RISK:
+        pos = text.find(phrase)
+        if pos >= 0 and not _has_negation_before(text, pos):
+            return "soft"
+    return None
+
+
+def _income_direction_flags(text: str) -> tuple[bool, bool]:
+    """只在收入/营收所在分句内判断方向，避免被毛利率回升等后文污染。"""
+    clauses = re.split(r"[。；;\n]", text)
+    up = down = False
+    for clause in clauses:
+        if not re.search(r"收入|营收|营业收入", clause):
+            continue
+        if re.search(r"下降|下滑|负增长|收缩|缩减|减少|降至|降低", clause):
+            down = True
+        if re.search(r"增长|上升|提升|扩大|增加|增至|攀升", clause):
+            up = True
+    return up, down
 
 
 # ---------- 单条评分 ---------- #
@@ -158,12 +216,11 @@ def score_fact(s, text):
 
     # 收入趋势方向
     direction = gf["revenue_trend"]["direction"]
-    neg_word = re.search(r"(收入|营收).{0,40}(下降|下滑|负增长|收缩|缩减|减少)", text)
-    pos_word = re.search(r"(收入|营收).{0,40}(增长|上升|提升|扩大|增加)", text)
-    if direction == "up" and neg_word:
+    income_up, income_down = _income_direction_flags(text)
+    if direction == "up" and income_down and not income_up:
         wrong += 1
         deductions.append("趋势误读：gold 收入向上但输出称下降/下滑")
-    elif direction == "down" and pos_word:
+    elif direction == "down" and income_up and not income_down:
         wrong += 1
         deductions.append("趋势误读：gold 收入向下但输出称上升/增长")
     else:
@@ -187,7 +244,7 @@ def score_na(s, text):
     for m in na_metrics:
         for kw in mapping.get(m, [m]):
             if kw in text:
-                ack = has_phrase_near(kw, NA_ACK, text)
+                ack = has_phrase_near(kw, NA_ACK, text, before=60, after=240)
                 val = parse_ratio_near(kw, text)
                 if ack:
                     correct += 1
@@ -213,11 +270,15 @@ def score_coverage(text):
 
 def score_sourcing(text):
     grounded = any(p in text for p in GROUNDING)
-    risk = any(p in text for p in UNSOURCED_RISK)
-    if risk and not grounded:
+    risk = _risk_level(text)
+    if risk == "hard" and not grounded:
         return 50.0, ["无来源结论：含买卖建议/造假认定等强结论且无合并报表主表锚定"]
-    if risk and grounded:
+    if risk == "hard" and grounded:
         return 85.0, ["无来源结论（弱）：含强结论但有数据锚定，扣分较轻"]
+    if risk == "soft" and not grounded:
+        return 75.0, ["边界措辞偏强：含造假/粉饰等风险词但缺少充分主表锚定"]
+    if risk == "soft" and grounded:
+        return 90.0, ["边界措辞偏强：含造假/粉饰等风险词，需人工复核语义强度"]
     if not grounded:
         return 80.0, ["未显式锚定合并报表主表口径（轻微扣分）"]
     return 100.0, []
@@ -326,7 +387,7 @@ def main():
     for name, ok in checks:
         print(f"  [{'PASS' if ok else 'FAIL'}] {name}  ({g:.2f}/{m:.2f}/{b:.2f}/{adv:.2f})")
     print("=" * 100)
-    print(f"结论：{'全部排序假设成立 ✅' if all_pass else '存在未通过项 ❌'}")
+    print(f"结论：{'全部排序假设成立 [PASS]' if all_pass else '存在未通过项 [FAIL]'}")
     print(f"输出已写入：{OUT_CSV}（本地预览，gitignored）")
     print(f"可提交副本：{OUT_CSV_COMMIT}（data/derived/，可入库复核）")
     return 0 if all_pass else 1

@@ -81,8 +81,8 @@ def main():
     print(f"分组数 (sample_id+quality) = {len(groups)}")
     print(f"total 分数 max_delta (3 轮 max-min) = {max_delta}")
     print("=" * 70)
-    print("结论：", "规则评估器确定性，3 轮分数完全一致 ✅" if max_delta == 0
-          else f"存在波动 ❌ max_delta={max_delta}")
+    print("结论：", "规则评估器确定性，3 轮分数完全一致 [PASS]" if max_delta == 0
+          else f"存在波动 [FAIL] max_delta={max_delta}")
     print(f"输出已写入：{OUT_CSV}")
     return 0 if max_delta == 0 else 1
 

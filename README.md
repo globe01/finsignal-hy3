@@ -6,7 +6,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
-[![Status](https://img.shields.io/badge/status-proposal-orange)](#项目进度)
+[![Status](https://img.shields.io/badge/status-demo%2Beval-green)](#项目进度)
 
 ## 项目简介
 
@@ -101,9 +101,9 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - [x] 注入引擎（会计恒等式自洽）+ 四层金标准（注入元数据独立真值）
 - [x] 规则评估器 D1–D8 + 微平均聚合（输出分子/分母，N/A 不记 0）
 - [x] Hy3-as-Judge 语义评审模块（方案 §5.6，与规则 Rubric 并列，非替代）
-- [x] 离线自检（`--offline` 零依赖）+ 203 项 pytest 单元测试
+- [x] 离线自检（`--offline` 零依赖）+ 217 项 pytest 单元测试
 - [x] 接入真实上市公司公开数据（Phase 3：8 家 40 份 PDF 已收集，`data/derived/manifest.csv` 来源清单已生成；**宁德时代、隆基绿能、格力电器、比亚迪、万华化学、三一重工、中兴通讯、恒瑞医药 2021-2025 全部完成 5 年结构化摘录**（隆基 2024 使用修订版、2025 商誉原表为空；比亚迪 2021 BS/IS/CF 原表单位元、2022-2025 BS/IS/CF 原表单位千元、NR 表 5 年单位均元；万华化学 2021-2025 BS/IS/CF/NR 原表单位均为元；三一重工 2021-2025 BS/IS/CF/NR 原表单位均为千元；中兴通讯 2021-2025 BS/IS/CF/NR 原表单位均为千元（A/H 股双上市，权益用"股东权益"表述，末段"股东权益合计"行列布局在 2022 年翻转，故 equity 改用资产总计−负债合计核算；中兴商誉极小（千元级，2022/2023/2025 原表列示为"-"按空值处理））；恒瑞医药 2021-2025 BS/IS/CF/NR 原表单位均为元（无需换算），但 2023 年合并BS部分行（资产总计/非流动资产合计）列布局翻转（标签居中、本期列在末位），已用"标签相对金额位置"法统一判定本期列；恒瑞商誉 5 年合并BS主表未列示、短期借款仅 2022 合并BS主表有值（2023 当期为"-"、2021/2024/2025 合并BS主表未列示），均按空值保留不填 0）；8 家已全部写入 `data/derived/real_financials_2021_2025.csv`（40 行 × 21 列）。真实样本评测管线 `eval/run_real_eval.py` 仅完成骨架，不出 D4/D5 主结论。详见 [docs/real_data_sources.md](docs/real_data_sources.md) §7）
-- [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 标注模板；标注数据待补）
+- [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 双人盲评待填表 `eval/validity/annotations_todo.csv` + 真实样本信号级待填表 `eval/validity/real_signal_todo.csv`；标注数据待人工填写）
 - [x] Streamlit 最小可用 Demo（`app/streamlit_app.py`，上传/粘贴 → Hy3 → 卡片 + D1/D2/D3/D8 校验）
 
 完整方案见 [docs/proposal.md](docs/proposal.md)。
@@ -172,6 +172,16 @@ python -m eval.summary_online --in-dir results/online_local \
 python -m eval.validity.export_blind --cases results/online_local/cases_run1.json \
     --out results/blind/cases_run1_blind.json
 
+# 生成 A/B 双人标注待填表；填完后用 agreement.py 计算一致性
+python -m eval.validity.export_annotation_todo --cases results/online_local/cases_run1.json \
+    --out eval/validity/annotations_todo.csv
+python -m eval.validity.agreement --csv eval/validity/annotations_filled.csv --json
+
+# 生成真实样本 D4/D5 信号级待填表；填完后计算 MRhigh/P/R/Rw
+python -m eval.validity.export_real_signal_todo --outputs data/derived/hy3_real_outputs.jsonl \
+    --out eval/validity/real_signal_todo.csv
+python -m eval.validity.real_signal_metrics --csv eval/validity/real_signal_filled.csv
+
 # 交互式 Demo（选择真实样本 / 上传 CSV·Excel / 表格录入 / 粘贴文本 → 调 Hy3 →
 # 卡片展示 + D1/D2/D3/D8 校验 + 免责声明）
 streamlit run app/streamlit_app.py
@@ -224,14 +234,20 @@ finsignal-hy3/
 .venv/bin/python scripts/run_hy3_real_samples.py --score-existing  # 不耗 API，重评已有输出
 ```
 
-> **当前状态**：已完成 7 条 Hy3 真实输出小规模实跑；规则评分均分 `85.07`。
-> READY 样本 4 条，均分 `93.75`；PARTIAL/N-A 样本 3 条，均分 `73.50`。
+> **当前状态**：已完成 7 条 Hy3 真实输出小规模实跑；修复文本误伤后的规则评分均分 `94.00`。
+> READY 样本 4 条，均分 `96.25`；PARTIAL/N-A 样本 3 条，均分 `91.00`。
 > 该脚本仅产出规则评分快照，**不输出真实样本 D4/D5 主结论**（真实样本尚缺人工金标准）。
-> 轻量人工抽检见 [`docs/manual_review_notes.md`](docs/manual_review_notes.md)（发现规则在 PARTIAL 样本上
-> 存在多处疑似误判，PARTIAL 均分或被低估；规则快照 ≠ 业务正确性）。
+> 轻量人工抽检见 [`docs/manual_review_notes.md`](docs/manual_review_notes.md)；本轮已修复年份、金额单位和软性风险词导致的主要误伤，规则快照仍不等同于业务真值。
 > 小型人工金标准见 [`docs/manual_gold_mini.md`](docs/manual_gold_mini.md) 与
 > `data/derived/manual_gold_mini.csv`（3 条代表样本 × 6 个审查项 = 18 条人工判定项；单人标注，
 > 只作规则校准，不计算完整 D4/D5）。
+
+## 提交前材料
+
+- 交付清单见 [`docs/final_submission_checklist.md`](docs/final_submission_checklist.md)。
+- 2 分钟 Demo 视频脚本见 [`docs/demo_video_script.md`](docs/demo_video_script.md)。
+- 双人盲评待填表见 `eval/validity/annotations_todo.csv`；该文件只含空白标注位，不冒充已完成人工一致性。
+- 真实样本 D4/D5 信号级待填表见 `eval/validity/real_signal_todo.csv`；填完 `real_signal_filled.csv` 后才计算真实样本主指标。
 
 ## 免责声明
 

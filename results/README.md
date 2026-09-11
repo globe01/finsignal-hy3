@@ -98,8 +98,8 @@ python -m eval.validity.export_blind \
    （MRhigh=0%、P/R/Rw=100%、D1/D2/D3/D8=100% 为**预期且必须**的结果）。
    任何把这套 100% 当作「Hy3 准确率」的说法都是错误的。
 2. **Hy3 真实性能**须经在线评测（`--runs 3`，需 Key）取得，且即便 `temperature=0`
-   在线模型仍有波动，必须多次取均值/区间 —— 该结果**不入库**，仅在 `docs/report.md`
-   的「在线评测（待运行）」一节标注 `pending`。
+   在线模型仍有波动，必须多次取均值/区间。原始在线产物不入库，仅提交
+   `results/online_summary.json` 与 `results/online_runs_summary.csv` 两个脱敏汇总，详见 `docs/report.md` §5。
 3. D7/D8 的真值需人工标注（`docs/annotation_guide.md`）与 Hy3 语义评审交叉确认，
    当前规则 Rubric 与 Hy3-as-Judge 两条路径只报**一致性（agreement）**，不报准确性（accuracy）。
 

@@ -45,6 +45,7 @@ Desktop.ini
 cache/
 tmp/
 temp/
+.tmp_pytest/
 
 # Local/private source materials
 data/raw/

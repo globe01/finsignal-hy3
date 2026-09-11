@@ -1,0 +1,113 @@
+sample_id,company,sample_status,signal_type,annotator,round,human_gold_present,human_gold_severity,model_detected,period,note
+300750_2021-2023,宁德时代,READY,cashflow_profit_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,cashflow_profit_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,receivables_revenue_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,receivables_revenue_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,inventory_cost_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,inventory_cost_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,gross_net_margin_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,gross_net_margin_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,nonrecurring_profit_dependence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,nonrecurring_profit_dependence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,goodwill_net_assets_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,goodwill_net_assets_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,short_term_solvency_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,short_term_solvency_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+300750_2021-2023,宁德时代,READY,impairment_loss_surge,A,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+300750_2021-2023,宁德时代,READY,impairment_loss_surge,B,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+002594_2021-2023,比亚迪,READY,cashflow_profit_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,cashflow_profit_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,receivables_revenue_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,receivables_revenue_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,inventory_cost_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,inventory_cost_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,gross_net_margin_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,gross_net_margin_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,nonrecurring_profit_dependence,A,1,yes,medium,yes,2021,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,nonrecurring_profit_dependence,B,1,yes,medium,yes,2021,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,goodwill_net_assets_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,goodwill_net_assets_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,short_term_solvency_pressure,A,1,no,na,yes,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,short_term_solvency_pressure,B,1,no,na,yes,,AI-assisted prefill; not human gold.
+002594_2021-2023,比亚迪,READY,impairment_loss_surge,A,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+002594_2021-2023,比亚迪,READY,impairment_loss_surge,B,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+600309_2021-2023,万华化学,READY,cashflow_profit_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,cashflow_profit_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,receivables_revenue_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,receivables_revenue_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,inventory_cost_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,inventory_cost_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,gross_net_margin_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,gross_net_margin_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,nonrecurring_profit_dependence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,nonrecurring_profit_dependence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,goodwill_net_assets_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,goodwill_net_assets_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,short_term_solvency_pressure,A,1,yes,high,yes,2022,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,short_term_solvency_pressure,B,1,yes,high,yes,2022,AI-assisted prefill; not human gold.
+600309_2021-2023,万华化学,READY,impairment_loss_surge,A,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+600309_2021-2023,万华化学,READY,impairment_loss_surge,B,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+600031_2021-2023,三一重工,READY,cashflow_profit_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,cashflow_profit_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,receivables_revenue_divergence,A,1,yes,high,yes,2022,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,receivables_revenue_divergence,B,1,yes,high,yes,2022,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,inventory_cost_divergence,A,1,yes,medium,yes,2022,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,inventory_cost_divergence,B,1,yes,medium,yes,2022,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,gross_net_margin_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,gross_net_margin_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,nonrecurring_profit_dependence,A,1,no,na,yes,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,nonrecurring_profit_dependence,B,1,no,na,yes,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,goodwill_net_assets_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,goodwill_net_assets_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,short_term_solvency_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,short_term_solvency_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600031_2021-2023,三一重工,READY,impairment_loss_surge,A,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+600031_2021-2023,三一重工,READY,impairment_loss_surge,B,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+000063_2021-2023,中兴通讯,PARTIAL,cashflow_profit_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,cashflow_profit_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,receivables_revenue_divergence,A,1,no,na,yes,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,receivables_revenue_divergence,B,1,no,na,yes,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,inventory_cost_divergence,A,1,yes,low,yes,2022,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,inventory_cost_divergence,B,1,yes,low,yes,2022,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,gross_net_margin_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,gross_net_margin_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,nonrecurring_profit_dependence,A,1,yes,medium,yes,2021,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,nonrecurring_profit_dependence,B,1,yes,medium,yes,2021,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,goodwill_net_assets_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,goodwill_net_assets_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,short_term_solvency_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,short_term_solvency_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+000063_2021-2023,中兴通讯,PARTIAL,impairment_loss_surge,A,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+000063_2021-2023,中兴通讯,PARTIAL,impairment_loss_surge,B,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+600276_2021-2023,恒瑞医药,PARTIAL,cashflow_profit_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,cashflow_profit_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,receivables_revenue_divergence,A,1,yes,high,no,2022,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,receivables_revenue_divergence,B,1,yes,high,no,2022,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,inventory_cost_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,inventory_cost_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,gross_net_margin_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,gross_net_margin_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,nonrecurring_profit_dependence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,nonrecurring_profit_dependence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,goodwill_net_assets_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,goodwill_net_assets_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,short_term_solvency_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,short_term_solvency_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+600276_2021-2023,恒瑞医药,PARTIAL,impairment_loss_surge,A,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+600276_2021-2023,恒瑞医药,PARTIAL,impairment_loss_surge,B,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+601012_2023-2025,隆基绿能,PARTIAL,cashflow_profit_divergence,A,1,no,na,yes,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,cashflow_profit_divergence,B,1,no,na,yes,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,receivables_revenue_divergence,A,1,yes,high,no,2024,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,receivables_revenue_divergence,B,1,yes,high,no,2024,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,inventory_cost_divergence,A,1,no,na,yes,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,inventory_cost_divergence,B,1,no,na,yes,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,gross_net_margin_divergence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,gross_net_margin_divergence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,nonrecurring_profit_dependence,A,1,no,na,no,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,nonrecurring_profit_dependence,B,1,no,na,no,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,goodwill_net_assets_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,goodwill_net_assets_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,short_term_solvency_pressure,A,1,no,na,no,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,short_term_solvency_pressure,B,1,no,na,no,,AI-assisted prefill; not human gold.
+601012_2023-2025,隆基绿能,PARTIAL,impairment_loss_surge,A,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.
+601012_2023-2025,隆基绿能,PARTIAL,impairment_loss_surge,B,1,no,na,no,,AI-assisted prefill; not human gold. impairment/total_profit fields unavailable in this real-sample schema.

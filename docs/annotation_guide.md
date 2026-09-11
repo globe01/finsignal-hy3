@@ -87,6 +87,11 @@ python -m eval.validity.agreement --csv eval/validity/annotations.csv
 # 从在线评测结果抽取待标注卡片清单（匿名 case_id + 稳定 card_000 序号，severity_label 留空）
 python -m eval.validity.agreement --emit-template results/online_local/cases_run1.json
 
+# 直接生成 A/B 双人盲评待填表（推荐，输出 53 张卡片 × 2 名标注者 = 106 行）
+python -m eval.validity.export_annotation_todo \
+    --cases results/online_local/cases_run1.json \
+    --out eval/validity/annotations_todo.csv
+
 # 导出盲评数据（剥离金标准，供标注者独立判断）
 python -m eval.validity.export_blind \
     --cases results/online_local/cases_run1.json \
@@ -100,6 +105,8 @@ python -m eval.validity.export_blind \
 - 同一批卡片建议做 **第 2 轮（round=2）** 重复标注，用于估计标注者内波动（见 §4 重复评估波动）。
 - 标注完成后回填 `eval/validity/annotations.csv`，再跑 `agreement --csv` 计算 Cohen's / Fleiss κ
   与 Spearman ρ；标注者 <2 或仅 1 轮时 `agreement.py` 明确输出 `PENDING`，**绝不编造**一致性数值。
+- 当前仓库提供 `eval/validity/annotations_todo.csv` 作为待填表。它只含匿名 case/card 清单和 A/B
+  两名标注者的空白答案位；请填完后另存为 `eval/validity/annotations_filled.csv`，避免把待填表误解为已完成标注。
 - 盲评导出产物（`results/blind/`）与在线原始产物（`results/online_local/`）均为真实模型输出，
   本地留档、**不入库**（已在 `.gitignore` 中）。
 
