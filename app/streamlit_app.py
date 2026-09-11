@@ -31,6 +31,7 @@ from app.input_helpers import (
     dataframe_to_financials,
     financials_to_dataframe,
     financials_to_text,
+    format_display_value,
     load_real_samples,
     parse_uploaded_file,
     sample_options,
@@ -614,9 +615,9 @@ def _render_sample_tab() -> None:
         sid = opts[st.session_state["selected_sample_label"]]
         s = st.session_state["samples"][sid]
         c1, c2, c3 = st.columns(3)
-        c1.metric("公司", s.get("company", ""))
-        c2.metric("窗口", s.get("window_years", ""))
-        c3.metric("状态", s.get("sample_status", ""))
+        c1.metric("公司", format_display_value(s.get("company", "")))
+        c2.metric("窗口", format_display_value(s.get("window_years", "")))
+        c3.metric("状态", format_display_value(s.get("sample_status", "")))
 
 
 def _render_upload_tab() -> None:

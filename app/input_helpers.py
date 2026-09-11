@@ -44,15 +44,31 @@ def load_real_samples(path: Path | str = SAMPLES_PATH) -> dict[str, dict]:
     }
 
 
+def format_display_value(value) -> str:
+    """Return a scalar display string for Streamlit labels and metrics."""
+    if value is None:
+        return ""
+    if isinstance(value, (list, tuple, set)):
+        parts = [str(item) for item in value if item is not None and str(item) != ""]
+        try:
+            years = [int(item) for item in parts]
+        except ValueError:
+            return ", ".join(parts)
+        if years and years == list(range(years[0], years[-1] + 1)):
+            return f"{years[0]}-{years[-1]}" if len(years) > 1 else str(years[0])
+        return ", ".join(parts)
+    return str(value)
+
+
 def sample_options(samples: dict[str, dict] | None = None) -> dict[str, str]:
     """返回 {展示文本: sample_id}，供 st.selectbox 使用。"""
     if samples is None:
         samples = load_real_samples()
     opts = {}
     for sid, s in samples.items():
-        years = s.get("window_years", "")
-        status = s.get("sample_status", "")
-        company = s.get("company", sid)
+        years = format_display_value(s.get("window_years", ""))
+        status = format_display_value(s.get("sample_status", ""))
+        company = format_display_value(s.get("company", sid))
         opts[f"{company} · {years} · {status}"] = sid
     return opts
 

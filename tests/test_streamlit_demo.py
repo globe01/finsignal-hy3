@@ -10,6 +10,7 @@
 """
 from __future__ import annotations
 
+from app.input_helpers import format_display_value, sample_options
 from app.schema import AnomalyCard, Calculation, FactBasis, ScanOutput, Severity, SignalType
 from app.streamlit_app import _compute_checks
 
@@ -95,3 +96,22 @@ def test_demo_empty_output_no_crash():
     checks = _compute_checks(out)
     assert checks["judge"]["n_cards"] == 0
     assert checks["d2"]["d2_struct_total"] == 0
+
+
+def test_display_value_formats_list_for_streamlit_metric():
+    assert format_display_value([2021, 2022, 2023]) == "2021-2023"
+    assert format_display_value([2021, 2023]) == "2021, 2023"
+    assert format_display_value(None) == ""
+    assert format_display_value("READY") == "READY"
+
+
+def test_sample_options_format_window_years_as_scalar_label():
+    opts = sample_options({
+        "000001_2021-2023": {
+            "company": "TestCo",
+            "window_years": [2021, 2022, 2023],
+            "sample_status": "READY",
+        }
+    })
+
+    assert opts == {"TestCo · 2021-2023 · READY": "000001_2021-2023"}
