@@ -78,5 +78,6 @@ results/tables/*.json
 
 # Streamlit secrets
 .streamlit/
+!.streamlit/
 !.streamlit/config.toml
 
