@@ -172,7 +172,8 @@ python -m eval.summary_online --in-dir results/online_local \
 python -m eval.validity.export_blind --cases results/online_local/cases_run1.json \
     --out results/blind/cases_run1_blind.json
 
-# 交互式 Demo（上传 CSV / 粘贴数据 → 调 Hy3 → 卡片展示 + D1/D2/D3/D8 校验 + 免责声明）
+# 交互式 Demo（选择真实样本 / 上传 CSV·Excel / 表格录入 / 粘贴文本 → 调 Hy3 →
+# 卡片展示 + D1/D2/D3/D8 校验 + 免责声明）
 streamlit run app/streamlit_app.py
 ~~~
 

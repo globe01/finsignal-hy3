@@ -165,6 +165,9 @@ python -m eval.run_eval --limit 3 --hy3-judge
 streamlit run app/streamlit_app.py
 ```
 
+Streamlit Demo 支持四种输入方式：选择已结构化的真实公司样本、上传 CSV/Excel、在线表格录入、粘贴文本；
+未配置 Key 时仍可浏览界面，点击「运行扫描」会提示配置 `.env`。
+
 若腾讯云欠费、Key 过期或模型名变化，先更新 `.env`，不要把 Key 写进代码或提交到仓库。
 
 ### 不小心生成了本地运行产物
