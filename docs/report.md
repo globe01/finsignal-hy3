@@ -378,12 +378,46 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
     术语堆砌、以"外部模型推断"绕开给定结构化数据、篇幅很长且含无来源"强烈建议买入/目标价"结论。
 - **评测器**：`eval/real_sample_eval.py`（规则式，不调用 Hy3）按 5 个维度加权评分（0–100）：
   事实数字一致性 `fact`(0.40)、N/A 处理 `na`(0.20)、关键维度覆盖 `coverage`(0.20)、
-  无来源结论 `sourcing`(0.10)、结构清晰 `structure`(0.10)。逐条写入
-  `results/real_eval/discriminative_validation.csv`（**该目录按仓库约定不入库**）。
+  无来源结论 `sourcing`(0.10)、结构清晰 `structure`(0.10)。`eval/real_sample_eval.py` 运行时**同时写两份**：
+  `results/real_eval/discriminative_validation.csv`（本地预览，按仓库约定不入库）与
+  `data/derived/discriminative_validation.csv`（可提交副本）；提交以 `data/derived/` 为准，无需手动复制。
 - **结果（2026-09-11 运行）**：各档平均分 **good 97.86 > medium 85.41 > bad 77.75 > adversarial 55.11**，
   5 项排序假设全部 PASS、8 个窗口无逐条倒挂。典型扣分：bad/adversarial 的"事实错误：某指标引用偏差超 15%"、
   "N/A 当 0/臆测"、"趋势误读：gold 收入向上但输出称下降"、"无来源结论：含买卖建议且无主表锚定"。
   `pytest` 206 passed（exit 0），`git diff --check` 通过。
+
+### 一致性验证（重复 3 轮，不调用 Hy3）
+
+- **目的**：验证规则式评测器 `eval/real_sample_eval.py` 的**工程确定性**——同一份 fixture
+  重复评估多轮，分数应完全一致，作为「可作为离线基准评估器」的稳定性证据。
+- **方法**：`eval/consistency_validation.py` 复用 `eval/real_sample_eval.py` 的单条评分逻辑
+  （`evaluate_one`），读取 `data/derived/real_eval_samples.jsonl`（gold）与
+  `data/derived/real_eval_outputs_fixture.jsonl`（32 条 fixture），对每条 fixture
+  **重复评估 3 轮**，逐轮写出 `sample_id / quality / run_id / fact / na / coverage /
+  sourcing / structure / total`，并汇总每个 `sample_id+quality` 的 `total` 分数 `max-min` 波动。
+- **结果（2026-09-11 运行）**：样本数 **32**、轮数 **3**、输出 `data/derived/consistency_validation.csv`
+  共 **96 行**；所有分组的 `total` 分数 **max_delta = 0**（即 3 轮分数逐位一致）。
+- **结论**：规则评估器为纯确定性逻辑（正则 + 数值比较，无随机、无外部调用），输出稳定，
+  **适合作为离线基准评估器（baseline evaluator）**，用于快速回归与质量档位分层。
+- **边界说明（重要）**：本一致性验证**仅证明工程确定性**，并不替代
+  （a）**人工一致性（agreement）**——评分口径是否与人判断一致需另行人工标注校验；
+  （b）**Hy3-as-Judge / 大模型评审**——语义层面的人工/模型一致性仍需独立验证。
+  一致性 ≠ 正确性，二者不可混淆。
+
+### 典型失败模式（评估器可捕获的红灯信号）
+
+以下信号已在 fixture 的 `bad` / `adversarial` 档中植入，并被评测器稳定扣分，可作为
+真实模型输出上线前的自动拦截清单：
+
+1. **N/A 补 0 / 臆测**：输入字段缺失或标记 N/A 的指标（如恒瑞/中兴的商誉、恒瑞的短期借款）
+   被强行赋值为 `0%` 或编造原因（"无商誉风险"）。正确做法：明确标注 N/A，不补 0、不臆测。
+2. **公式计算错误**：毛利率/净利率/应收占比等口径计算偏差超 15%（如把毛利率低估为 1/4、
+   流动比率取倒数、经营现金流质量取倒数），属 `fact` 维度红灯。
+3. **趋势方向误读**：gold 收入呈上升却输出"下降/下滑"，或反之；属 `fact` 维度的方向性红灯。
+4. **无来源强结论 / 投资建议**：在未锚定合并报表主表口径的情况下给出"强烈建议买入/卖出""目标价"
+   "存在造假风险"等强结论，属 `sourcing` 维度红灯。
+5. **堆砌术语但不锚定主表证据**：大量 ESG / XBRL / 杜邦 / 蒙特卡洛等术语铺陈，却用"外部模型推断"
+   绕开给定结构化字段、且关键数字与 gold 不符，属 `fact` + `sourcing` 双重红灯。
 
 ### 明确不做的内容
 
