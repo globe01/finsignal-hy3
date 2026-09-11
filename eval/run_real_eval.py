@@ -90,35 +90,46 @@ def load_csv():
 
 def build_window_plan(company: str, by_year: dict[int, dict], window_name: str,
                       start: int, end: int) -> WindowPlan:
+    """构建窗口规划。
+
+    判定口径（重要，与 Phase 3 当前真实进度一致）：
+    1. 窗口内**每个年份的每个 REQUIRED_FIELDS 都必须非空**，才记为 READY。
+       仅取最近一年非空值会掩盖该字段在前几年的真实缺失。
+    2. 缺失字段以 `year.field` 格式记录（如 `2025.goodwill`），便于定位补齐。
+    3. 状态机：
+       - 0 缺失         → READY    （字段完整）
+       - 1 缺失         → PARTIAL  （少量待补，已具备初步可用性）
+       - ≥2 缺失        → PENDING  （暂不可用）
+
+    注意：本脚本**不调用 Hy3**，**不输出 D4/D5 主结论**——这些限制见模块
+    顶部的 docstring，需待人工金标准与 .env 三项就绪后才解除。
+    """
     years = list(range(start, end + 1))
-    fields: dict = {}
-    missing: list[str] = []
+    fields: dict = {}        # field -> list[{value, year, unit}]（按年序列）
+    missing: list[str] = []  # year.field 格式
     src_pages: list[str] = []
-    for k in REQUIRED_FIELDS:
-        # 优先用窗口中年份最末一年（最贴近当前时点）
-        chosen = None
-        chosen_year = None
-        for y in reversed(years):
-            if y in by_year and by_year[y].get(k):
-                chosen = by_year[y][k]
-                chosen_year = y
-                break
-        if chosen is None:
-            missing.append(k)
-        else:
-            fields[k] = {
-                "value": chosen,
-                "year": chosen_year,
-                "unit": "元",
-            }
-    if by_year.get(years[-1]):
-        src = by_year[years[-1]].get("source_table_or_page", "")
+
+    for y in years:
+        row = by_year.get(y) or {}
+        for k in REQUIRED_FIELDS:
+            val = (row.get(k) or "").strip()
+            if not val:
+                missing.append(f"{y}.{k}")
+            else:
+                fields.setdefault(k, []).append({
+                    "value": val, "year": y, "unit": "元",
+                })
+
+    # 收集所有年份的 source_table_or_page（按年份留痕）
+    for y in years:
+        row = by_year.get(y) or {}
+        src = row.get("source_table_or_page", "")
         if src and src not in src_pages:
             src_pages.append(src)
 
     if not missing:
         status = "ready"
-    elif len(missing) < len(REQUIRED_FIELDS) // 2:
+    elif len(missing) == 1:
         status = "partial"
     else:
         status = "pending"
@@ -186,7 +197,16 @@ def main():
 
     print(f"识别到 {len(plans)} 个窗口（来自 {len({p.company for p in plans})} 家公司）。\n")
     for p in plans:
-        miss = f"缺 {len(p.missing_fields)} 字段" if p.missing_fields else "字段齐全"
+        if not p.missing_fields:
+            miss = "字段齐全"
+        else:
+            miss_preview = ", ".join(p.missing_fields)
+            # PARTIAL 1 个字段全部打印；PENDING (≥2) 最多展示前 5 个 + 其余数量
+            if len(p.missing_fields) <= 5:
+                miss = f"缺 {len(p.missing_fields)} 字段: {miss_preview}"
+            else:
+                miss = (f"缺 {len(p.missing_fields)} 字段: "
+                        f"{miss_preview}, …（仅展示前 5）")
         print(f"  {p.company} {p.window}  [{p.status.upper()}]  {miss}")
 
     if args.list and not args.plan:
