@@ -30,6 +30,8 @@ ROOT = Path(__file__).resolve().parent.parent
 SAMPLES_PATH = ROOT / "data" / "derived" / "real_eval_samples.jsonl"
 FIXTURE_PATH = ROOT / "data" / "derived" / "real_eval_outputs_fixture.jsonl"
 OUT_CSV = ROOT / "results" / "real_eval" / "discriminative_validation.csv"
+# 可提交副本：results/ 按仓库约定不入库，故同时写一份到 data/derived/ 以便入库复核
+OUT_CSV_COMMIT = ROOT / "data" / "derived" / "discriminative_validation.csv"
 
 # ---------- 数值解析 ---------- #
 _NUM_RE = re.compile(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?")
@@ -270,15 +272,16 @@ def main():
                 "deductions": " | ".join(res["deductions"]) or "-",
             })
 
-    # 写 CSV
-    OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    # 写 CSV：同时写 results/（本地预览，gitignored）与 data/derived/（可提交副本）
     fields = ["sample_id", "company", "quality", "sample_status", "na_metrics",
               "fact", "na", "coverage", "sourcing", "structure", "total", "deductions"]
-    with OUT_CSV.open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
-        w.writeheader()
-        for r in rows:
-            w.writerow(r)
+    for out_path in (OUT_CSV, OUT_CSV_COMMIT):
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        with out_path.open("w", encoding="utf-8", newline="") as f:
+            w = csv.DictWriter(f, fieldnames=fields)
+            w.writeheader()
+            for r in rows:
+                w.writerow(r)
 
     # 控制台分数表
     print("=" * 100)
@@ -314,7 +317,8 @@ def main():
         print(f"  [{'PASS' if ok else 'FAIL'}] {name}  ({g:.2f}/{m:.2f}/{b:.2f}/{adv:.2f})")
     print("=" * 100)
     print(f"结论：{'全部排序假设成立 ✅' if all_pass else '存在未通过项 ❌'}")
-    print(f"输出已写入：{OUT_CSV}")
+    print(f"输出已写入：{OUT_CSV}（本地预览，gitignored）")
+    print(f"可提交副本：{OUT_CSV_COMMIT}（data/derived/，可入库复核）")
     return 0 if all_pass else 1
 
 

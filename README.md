@@ -201,6 +201,27 @@ finsignal-hy3/
 - 派生数据将记录基础公司、注入类型、修改字段、异常强度和会计一致性检查结果。
 - 同一家公司的真实与派生窗口只进入同一个数据分组，避免同源数据泄漏。
 
+## Hy3 真实样本小规模实跑（脚本就绪，待配置 Key）
+
+`scripts/run_hy3_real_samples.py` 从 `data/derived/real_eval_samples.jsonl` 选取 7 条代表性真实样本
+（4 条 READY：宁德时代、比亚迪、万华化学、三一重工；3 条 PARTIAL：中兴通讯、恒瑞医药、隆基绿能），
+调用现有 Hy3 调用层 `app/llm.py`（`Hy3Client`）生成模型输出，并用 `eval/real_sample_eval.py` 的规则
+评分逻辑离线评估。产物：
+
+- `data/derived/hy3_real_outputs.jsonl`（每条含 `sample_id / company / sample_status / prompt / model_output / generated_at / model_name`）
+- `data/derived/hy3_real_eval_results.csv`（每条含 `sample_id / company / sample_status / fact / na / coverage / sourcing / structure / total / deductions`）
+
+运行：
+
+```bash
+# 先配置 .env 中的 HY3_API_KEY（见上「配置环境变量」）
+.venv/bin/python scripts/run_hy3_real_samples.py            # 真实生成并评估
+.venv/bin/python scripts/run_hy3_real_samples.py --dry-run   # 仅校验样本选取与 prompt，不耗 API、不写文件
+```
+
+> **当前状态**：`--dry-run` 已通过；真实 API 尚未配置（仓库无 `.env`），故未发起实跑、未生成输出文件。
+> 该脚本仅产出规则评分快照，**不输出真实样本 D4/D5 主结论**（真实样本尚缺人工金标准）。
+
 ## 免责声明
 
 本项目仅用于教育、研究和开源活动展示。输出内容不能替代注册会计师、审计机构、证券研究人员或其他专业人士的判断，不构成投资建议、交易建议或财务造假认定。

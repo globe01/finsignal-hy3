@@ -419,10 +419,41 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
 5. **堆砌术语但不锚定主表证据**：大量 ESG / XBRL / 杜邦 / 蒙特卡洛等术语铺陈，却用"外部模型推断"
    绕开给定结构化字段、且关键数字与 gold 不符，属 `fact` + `sourcing` 双重红灯。
 
+### Hy3 真实样本小规模实跑（脚本就绪，待配置 Key）
+
+- **目的**：在已验证的评分口径（discriminative + consistency）基础上，用真实 Hy3 对选取的
+  代表性真实样本生成模型输出，再用 `eval/real_sample_eval.py` 的规则评分逻辑做离线评估，
+  产出可入库的 `data/derived/hy3_real_outputs.jsonl` 与
+  `data/derived/hy3_real_eval_results.csv`（每条输出含 `sample_id / company / sample_status /
+  prompt / model_output / generated_at / model_name`，每条评分含 `fact / na / coverage /
+  sourcing / structure / total / deductions`）。
+- **样本选取（7 条，来自 `data/derived/real_eval_samples.jsonl`）**：
+  - **4 条 READY**：宁德时代（300750_2021-2023）、比亚迪（002594_2021-2023）、
+    万华化学（600309_2021-2023）、三一重工（600031_2021-2023）。
+  - **3 条 PARTIAL（含 N/A 字段）**：中兴通讯（000063_2021-2023，N/A：`goodwill_to_equity`）、
+    恒瑞医药（600276_2021-2023，N/A：`short_borrow_to_cash`、`goodwill_to_equity`）、
+    隆基绿能（601012_2023-2025，N/A：`goodwill_to_equity`）。
+- **脚本**：`scripts/run_hy3_real_samples.py`，复用现有 Hy3 调用层 `app/llm.py` 的 `Hy3Client`。
+  - `--dry-run`：仅校验样本选取与 prompt 构造，**不发起任何 API 调用、不写文件**，用于 CI/复现冒烟。
+  - 通过 `.env` 读取 `HY3_BASE_URL` / `HY3_API_KEY` / `HY3_MODEL`；若未配置 key，
+    **优雅失败并打印配置说明**，不硬编码 key、不向 stderr 泄露 key 内容。
+- **当前状态（2026-09-11）**：`--dry-run` 已通过（选定 7 条样本、prompt 预览正常、零 API 调用、
+  零文件写入）。**仓库未配置 `.env`（无 `HY3_API_KEY`），故未发起真实 Hy3 实跑，
+  未生成 `hy3_real_outputs.jsonl` / `hy3_real_eval_results.csv`。**
+  本地配置 Key 后运行：
+  ```bash
+  .venv/bin/python scripts/run_hy3_real_samples.py            # 真实生成并评估
+  .venv/bin/python scripts/run_hy3_real_samples.py --dry-run   # 仅校验，不耗 API
+  ```
+- **边界**：本轮实跑**不输出 D4/D5 真实主结论**——真实样本尚无人工金标准，召回率/精确率/漏报率
+  不可下结论；仅以规则评分口径给出 `fact/na/coverage/sourcing/structure/total` 的单卡质量分，
+  作为 Hy3 真实输出质量的离线基线快照，待人工标注后方可解锁 D4/D5。
+
 ### 明确不做的内容
 
-- **不调用 Hy3**：真实样本评测管线 `eval/run_real_eval.py` 当前仅完成
-  窗口规划与状态上报，**不发起任何 Hy3 调用**，**不出 D4/D5 主结论**。
+- **不输出真实样本 D4/D5 主结论**：真实样本尚无人工金标准，任何 D4/D5 数值（召回率/精确率/漏报率）
+  都会误导。`scripts/run_hy3_real_samples.py` 在配置 Key 后调用 Hy3 生成真实输出，但**仅产出规则
+  评分口径的 `total` 质量分快照，不下 D4/D5 结论**；`eval/run_real_eval.py` 骨架仍不发起 Hy3 调用。
 - **不计算召回率 / 精确率 / 漏报率**：真实样本**尚未建立人工金标准**，
   任何 D4/D5 数值都会是误导；现阶段只能给出 D1（事实回填）/ D2（公式复算）/
   D3（严格可追溯）的规则侧校验，**且需先有人工金标准方可下结论**。
