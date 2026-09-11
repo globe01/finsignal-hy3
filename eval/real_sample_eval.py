@@ -34,8 +34,9 @@ OUT_CSV = ROOT / "results" / "real_eval" / "discriminative_validation.csv"
 OUT_CSV_COMMIT = ROOT / "data" / "derived" / "discriminative_validation.csv"
 
 # ---------- 数值解析 ---------- #
-_NUM_RE = re.compile(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?")
-_RAT_RE = re.compile(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?\s*%?")
+_NUM_PATTERN = r"-?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
+_NUM_RE = re.compile(_NUM_PATTERN)
+_RAT_RE = re.compile(rf"(?P<num>{_NUM_PATTERN})\s*(?P<pct>%?)")
 
 
 def _to_float(tok: str) -> float:
@@ -45,35 +46,43 @@ def _to_float(tok: str) -> float:
 def parse_amounts(text: str):
     """提取所有带 亿/万/万亿 后缀的金额，换算为「元」绝对值。"""
     out = []
-    for m in re.finditer(r"-?\d{1,3}(?:,\d{3})+(?:\.\d+)?|-?\d+(?:\.\d+)?\s*(?:万亿|亿|万)?", text):
-        tok = m.group(0).replace(" ", "")
-        # 仅当后缀确实是金额单位时才换算
-        if tok.endswith("万亿"):
-            out.append(_to_float(tok[:-2]) * 1e12)
-        elif tok.endswith("亿"):
-            out.append(_to_float(tok[:-1]) * 1e8)
-        elif tok.endswith("万"):
-            out.append(_to_float(tok[:-1]) * 1e4)
+    for m in re.finditer(rf"(?P<num>{_NUM_PATTERN})\s*(?P<unit>万亿|亿元|亿|万元|万)", text):
+        val = _to_float(m.group("num"))
+        unit = m.group("unit")
+        if unit == "万亿":
+            out.append(val * 1e12)
+        elif unit in ("亿元", "亿"):
+            out.append(val * 1e8)
+        elif unit in ("万元", "万"):
+            out.append(val * 1e4)
     return out
 
 
-def parse_ratio_near(keyword: str, text: str):
-    """在 keyword 之后 50 字符内取首个数字；含 '%' 则 /100；返回 float 或 None。"""
+def parse_ratios_near(keyword: str, text: str):
+    """在 keyword 之后近邻文本内提取候选比率；跳过 2021 年这类年份。"""
     pos = text.find(keyword)
     if pos < 0:
-        return None
-    window = text[pos: pos + 50]
-    m = _RAT_RE.search(window)
-    if not m:
-        return None
-    tok = m.group(0).replace(",", "").replace("%", "").strip()
-    try:
-        val = float(tok)
-    except ValueError:
-        return None
-    if "%" in m.group(0):
-        val = val / 100.0
-    return val
+        return []
+    window = text[pos: pos + 160]
+    values = []
+    for m in _RAT_RE.finditer(window):
+        tok = m.group("num").replace(",", "").strip()
+        try:
+            val = float(tok)
+        except ValueError:
+            continue
+        if 1900 <= val <= 2100 and window[m.end(): m.end() + 1] == "年":
+            continue
+        if m.group("pct"):
+            val = val / 100.0
+        values.append(val)
+    return values
+
+
+def parse_ratio_near(keyword: str, text: str):
+    """返回 keyword 附近首个非年份候选比率；兼容 N/A 赋值检测。"""
+    vals = parse_ratios_near(keyword, text)
+    return vals[0] if vals else None
 
 
 # ---------- 维度/短语定义 ---------- #
@@ -119,19 +128,20 @@ def score_fact(s, text):
         ("应收占营收", ["应收占营收", "应收账款占营收"], ec["ar_to_revenue"]["value"]),
     ]
     for label, kws, gold in specs:
-        val = None
+        vals = []
         for kw in kws:
-            v = parse_ratio_near(kw, text)
-            if v is not None:
-                val = v
+            vs = parse_ratios_near(kw, text)
+            if vs:
+                vals = vs
                 break
-        if val is None:
+        if not vals:
             continue  # 该指标未在输出中引用，不计入
-        if abs(val - gold) <= 0.15 * max(abs(gold), 1e-9):
+        if any(abs(val - gold) <= 0.15 * max(abs(gold), 1e-9) for val in vals):
             correct += 1
         else:
             wrong += 1
-            deductions.append(f"事实错误：{label} 引用 {val:.4f} 与 gold {gold:.4f} 偏差超 15%")
+            shown = vals[0]
+            deductions.append(f"事实错误：{label} 引用 {shown:.4f} 与 gold {gold:.4f} 偏差超 15%")
 
     # 收入（金额口径）
     end_rev = gf["revenue_trend"]["end_revenue"]
@@ -278,7 +288,7 @@ def main():
     for out_path in (OUT_CSV, OUT_CSV_COMMIT):
         out_path.parent.mkdir(parents=True, exist_ok=True)
         with out_path.open("w", encoding="utf-8", newline="") as f:
-            w = csv.DictWriter(f, fieldnames=fields)
+            w = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")
             w.writeheader()
             for r in rows:
                 w.writerow(r)

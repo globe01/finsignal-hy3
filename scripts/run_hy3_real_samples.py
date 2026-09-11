@@ -19,9 +19,11 @@ Phase 3 —— Hy3 真实样本小规模实跑（small-scale real run）。
 
 用法：
   .venv/bin/python scripts/run_hy3_real_samples.py --dry-run   # 不调 API，仅校验样本选取与 prompt 构造
+  .venv/bin/python scripts/run_hy3_real_samples.py --score-existing  # 不调 API，重评已有输出
   .venv/bin/python scripts/run_hy3_real_samples.py            # 需 .env 配置 HY3_API_KEY，真实生成并评测
 """
 import argparse
+import csv
 import json
 import sys
 from datetime import datetime, timezone
@@ -95,6 +97,56 @@ def run_dry(selected, samples):
     return 0
 
 
+def write_results(results):
+    fields = ["sample_id", "company", "sample_status", "fact", "na", "coverage",
+              "sourcing", "structure", "total", "deductions"]
+    OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
+    with OUT_CSV.open("w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=fields, lineterminator="\n")
+        w.writeheader()
+        for r in results:
+            w.writerow(r)
+
+
+def evaluate_outputs(outputs, samples):
+    results = []
+    for o in outputs:
+        sid = o["sample_id"]
+        s = samples[sid]
+        res = evaluate_one(s, o["model_output"])
+        results.append({
+            "sample_id": sid,
+            "company": s["company"],
+            "sample_status": s["sample_status"],
+            "fact": res["fact"], "na": res["na"], "coverage": res["coverage"],
+            "sourcing": res["sourcing"], "structure": res["structure"], "total": res["total"],
+            "deductions": " | ".join(res["deductions"]) or "-",
+        })
+    return results
+
+
+def run_score_existing(samples):
+    if not OUT_JSONL.exists():
+        print(f"[ERROR] 找不到已有 Hy3 输出文件：{OUT_JSONL}")
+        return 2
+    outputs = [json.loads(line) for line in OUT_JSONL.read_text(encoding="utf-8").splitlines()
+               if line.strip()]
+    missing = [o["sample_id"] for o in outputs if o["sample_id"] not in samples]
+    if missing:
+        print(f"[ERROR] 输出文件中存在 gold 样本缺失的 sample_id：{missing}")
+        return 2
+    results = evaluate_outputs(outputs, samples)
+    write_results(results)
+    for r in results:
+        print(f"  {r['sample_id']:22} total={r['total']:.1f}")
+    avg = sum(r["total"] for r in results) / len(results) if results else 0.0
+    print("=" * 72)
+    print(f"已重评已有 Hy3 输出：{len(results)} 条 -> {OUT_CSV}")
+    print(f"均分 total = {avg:.2f}")
+    print("=" * 72)
+    return 0
+
+
 def run_real(selected, samples):
     # 延迟导入，避免无 key / 无依赖时影响 --dry-run
     try:
@@ -108,7 +160,7 @@ def run_real(selected, samples):
         config_help()
         return 2
 
-    outputs, results = [], []
+    outputs = []
     for sid in selected:
         s = samples[sid]
         prompt = build_prompt(s)
@@ -127,14 +179,6 @@ def run_real(selected, samples):
             "model_name": client.model,
         })
         res = evaluate_one(s, model_output)
-        results.append({
-            "sample_id": sid,
-            "company": s["company"],
-            "sample_status": s["sample_status"],
-            "fact": res["fact"], "na": res["na"], "coverage": res["coverage"],
-            "sourcing": res["sourcing"], "structure": res["structure"], "total": res["total"],
-            "deductions": " | ".join(res["deductions"]) or "-",
-        })
         print(f"  {sid:22} total={res['total']:.1f}")
 
     # 写 jsonl
@@ -142,16 +186,8 @@ def run_real(selected, samples):
     with OUT_JSONL.open("w", encoding="utf-8") as f:
         for o in outputs:
             f.write(json.dumps(o, ensure_ascii=False) + "\n")
-    # 写 csv
-    import csv
-    fields = ["sample_id", "company", "sample_status", "fact", "na", "coverage",
-              "sourcing", "structure", "total", "deductions"]
-    OUT_CSV.parent.mkdir(parents=True, exist_ok=True)
-    with OUT_CSV.open("w", encoding="utf-8", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=fields)
-        w.writeheader()
-        for r in results:
-            w.writerow(r)
+    results = evaluate_outputs(outputs, samples)
+    write_results(results)
 
     avg = sum(r["total"] for r in results) / len(results) if results else 0.0
     print("=" * 72)
@@ -165,6 +201,7 @@ def run_real(selected, samples):
 def main():
     ap = argparse.ArgumentParser(description="Hy3 真实样本小规模实跑（Phase 3）")
     ap.add_argument("--dry-run", action="store_true", help="不调用 API，仅校验样本选取与 prompt 构造")
+    ap.add_argument("--score-existing", action="store_true", help="不调用 API，仅重评已有 hy3_real_outputs.jsonl")
     args = ap.parse_args()
 
     samples = load_gold()
@@ -178,6 +215,8 @@ def main():
 
     if args.dry_run:
         return run_dry(selected, samples)
+    if args.score_existing:
+        return run_score_existing(samples)
     return run_real(selected, samples)
 
 

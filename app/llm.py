@@ -15,12 +15,14 @@ import json
 import os
 import time
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any, Sequence
 
 from dotenv import load_dotenv
 from openai import OpenAI
 
-load_dotenv()
+ROOT = Path(__file__).resolve().parent.parent
+load_dotenv(ROOT / ".env")
 
 # 混元默认并发上限为 5；批量评测时由 run_eval 用信号量约束
 MAX_CONCURRENCY = 5
@@ -38,6 +40,7 @@ class Hy3Client:
     temperature: float = float(os.getenv("HY3_TEMPERATURE", "0.2"))
     top_p: float = float(os.getenv("HY3_TOP_P", "1.0"))
     timeout: int = int(os.getenv("HY3_TIMEOUT_SECONDS", "120"))
+    send_sampling_params: bool = os.getenv("HY3_SEND_SAMPLING_PARAMS", "0") == "1"
     max_retries: int = MAX_RETRIES
 
     def __post_init__(self) -> None:
@@ -61,10 +64,16 @@ class Hy3Client:
         payload: dict[str, Any] = {
             "model": self.model,
             "messages": list(messages),
-            "temperature": self.temperature if temperature is None else temperature,
-            "top_p": self.top_p,
             "stream": False,
         }
+        # TokenHub 官方 curl 示例只包含 model/messages/stream；默认保持最小
+        # payload，避免部分部署对额外采样参数兼容性不一致。
+        if temperature is not None:
+            payload["temperature"] = temperature
+        elif self.send_sampling_params:
+            payload["temperature"] = self.temperature
+        if self.send_sampling_params:
+            payload["top_p"] = self.top_p
         if json_mode:
             payload["response_format"] = {"type": "json_object"}
         payload.update(kwargs)

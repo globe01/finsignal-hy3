@@ -381,7 +381,7 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
   无来源结论 `sourcing`(0.10)、结构清晰 `structure`(0.10)。`eval/real_sample_eval.py` 运行时**同时写两份**：
   `results/real_eval/discriminative_validation.csv`（本地预览，按仓库约定不入库）与
   `data/derived/discriminative_validation.csv`（可提交副本）；提交以 `data/derived/` 为准，无需手动复制。
-- **结果（2026-09-11 运行）**：各档平均分 **good 97.86 > medium 85.41 > bad 77.75 > adversarial 55.11**，
+- **结果（2026-09-11 运行）**：各档平均分 **good 97.86 > medium 85.41 > bad 78.46 > adversarial 54.61**，
   5 项排序假设全部 PASS、8 个窗口无逐条倒挂。典型扣分：bad/adversarial 的"事实错误：某指标引用偏差超 15%"、
   "N/A 当 0/臆测"、"趋势误读：gold 收入向上但输出称下降"、"无来源结论：含买卖建议且无主表锚定"。
   `pytest` 206 passed（exit 0），`git diff --check` 通过。
@@ -419,7 +419,7 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
 5. **堆砌术语但不锚定主表证据**：大量 ESG / XBRL / 杜邦 / 蒙特卡洛等术语铺陈，却用"外部模型推断"
    绕开给定结构化字段、且关键数字与 gold 不符，属 `fact` + `sourcing` 双重红灯。
 
-### Hy3 真实样本小规模实跑（脚本就绪，待配置 Key）
+### Hy3 真实样本小规模实跑（已完成）
 
 - **目的**：在已验证的评分口径（discriminative + consistency）基础上，用真实 Hy3 对选取的
   代表性真实样本生成模型输出，再用 `eval/real_sample_eval.py` 的规则评分逻辑做离线评估，
@@ -435,16 +435,23 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
     隆基绿能（601012_2023-2025，N/A：`goodwill_to_equity`）。
 - **脚本**：`scripts/run_hy3_real_samples.py`，复用现有 Hy3 调用层 `app/llm.py` 的 `Hy3Client`。
   - `--dry-run`：仅校验样本选取与 prompt 构造，**不发起任何 API 调用、不写文件**，用于 CI/复现冒烟。
+  - `--score-existing`：不发起任何 API 调用，仅对已有 `hy3_real_outputs.jsonl` 重新计算规则评分，
+    便于评测器口径微调后的可复现复核。
   - 通过 `.env` 读取 `HY3_BASE_URL` / `HY3_API_KEY` / `HY3_MODEL`；若未配置 key，
     **优雅失败并打印配置说明**，不硬编码 key、不向 stderr 泄露 key 内容。
-- **当前状态（2026-09-11）**：`--dry-run` 已通过（选定 7 条样本、prompt 预览正常、零 API 调用、
-  零文件写入）。**仓库未配置 `.env`（无 `HY3_API_KEY`），故未发起真实 Hy3 实跑，
-  未生成 `hy3_real_outputs.jsonl` / `hy3_real_eval_results.csv`。**
-  本地配置 Key 后运行：
+- **当前状态（2026-09-11）**：已完成 7 条 Hy3 真实输出小规模实跑，输出写入
+  `data/derived/hy3_real_outputs.jsonl`，规则评分写入 `data/derived/hy3_real_eval_results.csv`。
+  本次实跑均分 **85.07**；其中 READY 样本 4 条，均分 **93.75**（最高 98.0、最低 88.0）；
+  PARTIAL/N-A 样本 3 条，均分 **73.50**（最高 75.5、最低 70.0）。
+  复现命令：
   ```bash
   .venv/bin/python scripts/run_hy3_real_samples.py            # 真实生成并评估
   .venv/bin/python scripts/run_hy3_real_samples.py --dry-run   # 仅校验，不耗 API
+  .venv/bin/python scripts/run_hy3_real_samples.py --score-existing  # 仅重评已有输出
   ```
+- **典型扣分观察**：Hy3 在 READY 样本上通常能覆盖收入、盈利、现金流、营运资金与偿债维度；
+  在 PARTIAL/N-A 样本上更容易出现 N/A 指标赋值或原因臆测。部分输出还存在未显式锚定
+  合并报表主表口径、趋势方向误读、无来源投资判断等问题，已在 `deductions` 列记录。
 - **边界**：本轮实跑**不输出 D4/D5 真实主结论**——真实样本尚无人工金标准，召回率/精确率/漏报率
   不可下结论；仅以规则评分口径给出 `fact/na/coverage/sourcing/structure/total` 的单卡质量分，
   作为 Hy3 真实输出质量的离线基线快照，待人工标注后方可解锁 D4/D5。
@@ -457,8 +464,8 @@ medium 或反之。这是**代理指标**（信号级严重度命中率），下
 - **不计算召回率 / 精确率 / 漏报率**：真实样本**尚未建立人工金标准**，
   任何 D4/D5 数值都会是误导；现阶段只能给出 D1（事实回填）/ D2（公式复算）/
   D3（严格可追溯）的规则侧校验，**且需先有人工金标准方可下结论**。
-- **不在 `docs/report.md` 引用真实样本数字**：本节只说明接入状态，
-  不替换 §5 中的 3 轮在线评测主指标。
+- **不把 7 条小规模实跑替代为主结论**：本节可报告 Hy3 真实输出的规则评分质量快照，
+  但不替换 §5 中基于既定实验设计的主指标，也不声称代表完整模型能力。
 
 ### 后续工作
 

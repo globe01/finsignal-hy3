@@ -69,6 +69,7 @@ cp .env.example .env
 HY3_BASE_URL=https://tokenhub.tencentmaas.com/v1
 HY3_API_KEY=your-api-key
 HY3_MODEL=hy3
+HY3_SEND_SAMPLING_PARAMS=0
 HY3_TEMPERATURE=0.2
 HY3_TOP_P=1.0
 HY3_TIMEOUT_SECONDS=120
@@ -183,4 +184,3 @@ streamlit run app/streamlit_app.py
 git status --short
 git diff --check
 ```
-
