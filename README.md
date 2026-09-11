@@ -100,7 +100,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - [x] 规则评估器 D1–D8 + 微平均聚合（输出分子/分母，N/A 不记 0）
 - [x] Hy3-as-Judge 语义评审模块（方案 §5.6，与规则 Rubric 并列，非替代）
 - [x] 离线自检（`--offline` 零依赖）+ 203 项 pytest 单元测试
-- [ ] 接入真实上市公司公开数据（Phase 3，当前样本为合成注入）
+- [ ] 接入真实上市公司公开数据（Phase 3：8 家 40 份 PDF 已收集，`data/derived/manifest.csv` 来源清单已生成；**仅宁德时代 2021-2025 完成 5 年结构化摘录**；其余 7 家待扩展；真实样本评测管线 `eval/run_real_eval.py` 仅完成骨架，不出 D4/D5 主结论。详见 [docs/real_data_sources.md](docs/real_data_sources.md) §7）
 - [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 标注模板；标注数据待补）
 - [x] Streamlit 最小可用 Demo（`app/streamlit_app.py`，上传/粘贴 → Hy3 → 卡片 + D1/D2/D3/D8 校验）
 

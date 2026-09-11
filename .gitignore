@@ -62,6 +62,7 @@ data/private/
 results/online_local/
 results/blind/
 results/online_judge_local/
+results/real_eval/
 results/raw/*
 !results/raw/.gitkeep
 !results/raw/cases_run1.json

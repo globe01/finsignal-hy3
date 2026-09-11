@@ -110,3 +110,47 @@ company,stock_code,year,revenue,cogs,net_profit,cfo,accounts_receivable,inventor
 
 > 本项目除 40 个合成注入评测窗口外，额外收集 8 家制造业上市公司 2021-2025 年共 40 份公开年度报告，覆盖新能源电池、新能源汽车、光伏、工程机械、成熟家电、化工材料、通信设备和医药制造等子行业。真实年报样本用于验证应用在公开财报场景中的可用性，并为人工一致性标注和典型案例分析提供材料。原始 PDF 仅本地留档，不进入仓库；仓库仅提交来源清单、结构化派生数据和脱敏评测结果。
 
+## 7. 接入进度（实时状态，提交前请校对）
+
+> 数字均与仓库内 `data/derived/manifest.csv`、`data/derived/real_financials_2021_2025.csv` 一致；
+> 任一字段若与本节不一致，以 CSV 为准并请补回本节。
+
+### 7.1 来源清单（`data/derived/manifest.csv`）
+
+- 已生成，**40 条记录**（8 家公司 × 2021-2025）。
+- 字段：`sample_id, company, stock_code, exchange, year, report_title, source, source_url, local_raw_path, report_date, data_type, notes`。
+- 全称已与 PDF 封面文本逐家核验通过。
+- **披露日期** 状态：
+  - 已从 PDF 封面或重要提示页提取：**19 条**（精度到月，1 条到日），覆盖格力、比亚迪、宁德时代、中兴通讯大部分年份。
+  - 待补公告日期：**21 条**（notes 已统一标注「待补公告日期」），主要涉及三一重工、恒瑞医药、万华化学、隆基绿能，以及中兴 2021 等少量年份——这些 PDF 前两页未出现「次年年-月」格式的披露日期，需后续在巨潮资讯网公告页面回填精确日期。
+- **隆基绿能 2024** 使用修订版（`LONGI_601012_2024_annual_report_revised.pdf`），notes 标注「使用修订版」。
+
+### 7.2 结构化财务字段（`data/derived/real_financials_2021_2025.csv`）
+
+- **样板公司**：仅 **宁德时代（300750）** 完成 2021-2025 五年结构化摘录。
+- 字段 13 项：`revenue, cogs, net_profit, cfo, accounts_receivable, inventory, goodwill, current_assets, current_liabilities, short_borrow, cash, equity, nonrecurring`，均统一换算为「元」。
+- 来源表与页码已逐项记入 `source_table_or_page`，包含合并资产负债表/合并利润表/合并现金流量表/非经常性损益表所在页。
+- 字段口径：
+  - `net_profit` = 归属于母公司股东的净利润（归母口径，便于与非经常性损益、扣非口径一致）。
+  - `equity` = 所有者权益合计（含少数股东权益）。
+  - `nonrecurring` = 非经常性损益合计（税后归母）。
+  - `equity_parent` = 归属于母公司所有者权益合计，已提取但当前 CSV 不输出列（与主要会计数据表「归母净资产」用于交叉校验）。
+- **单位换算**（重要：扩展到其他公司时务必每年动态读取）：
+  - **2021-2023 年报**：合并三大报表单位为「万元」（保留 2 位小数，精度 0.01 万元 = 100 元）。
+  - **2024-2025 年报**：合并三大报表单位为「千元」（整数，精度 1 千元 = 1000 元）。
+  - 所有数值在 `notes` 列记录原表单位（`BS / IS / CF / NR` 分别注明），CSV 内 `unit` 列统一为「元」。
+- **交叉校验通过**（容差 2000 元，覆盖万元↔千元表之间的舍入差）：
+  - 同年表内：归母净利润 = 净利润 − 少数股东损益。
+  - 跨年：BS 本年期初 = 上年期末；IS / CF / 非经常性损益 本期披露的上年数 = 上年原报本期数。
+  - 三年（2023）年报与五年（2025）年报对 2023 数值的双重披露完全一致。
+
+### 7.3 派生脚本
+
+- `scripts/build_manifest.py`：扫描 `data/raw/cninfo/` 40 份 PDF 封面与重要提示页，生成 `manifest.csv`。
+- `scripts/extract_catl_financials.py`：从 CATL 五份年报 PDF 合并三大报表与非经常性损益表提取 13 项字段，输出 `real_financials_2021_2025.csv`（含其余 7 家占位空行）。
+
+### 7.4 后续工作（暂不展开）
+
+- 其余 7 家公司（比亚迪、隆基绿能、三一重工、格力电器、万华化学、中兴通讯、恒瑞医药）按相同口径扩展——`extract_catl_financials.py` 已抽象 PATTERNS 字典，可改造为通用化脚本。
+- 待补 21 条 `report_date` 字段：在巨潮资讯网对应公司「定期报告」列表页查询公告精确日期后回填。
+- 真实样本评测管线 `eval/run_real_eval.py` 已创建骨架（不调 Hy3、不出 D4/D5 主结论），等人工金标准建立后再启用。
