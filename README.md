@@ -108,7 +108,8 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 
 ## 快速开始
 
-> 评测器（`eval/run_eval.py`）已实现且离线/在线均可用；单公司扫描与 Web Demo 为后续阶段。
+> 评测器（`eval/run_eval.py`）已实现且离线/在线均可用；Streamlit Web Demo 已实现，
+> 单公司扫描 CLI 可作为补充入口。
 
 ### 1. 环境要求
 
