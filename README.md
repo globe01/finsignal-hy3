@@ -18,7 +18,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 ## 在线 Demo 与演示视频
 
 - 在线 Demo：https://finsignal.chemistryplsmodel.com
-- Demo 视频：[`demo.mp4`](demo.mp4)，2 分钟以内，展示从选择真实财务样本、调用 Hy3 生成异常信号卡片，到查看 D1/D2/D3/D8 自动校验与评估结果的完整流程。
+- Demo 视频：[`finsignal-demo.mp4`](https://github.com/globe01/finsignal-hy3/releases/download/demo/finsignal-demo.mp4)，2 分钟以内，展示从选择真实财务样本、调用 Hy3 生成异常信号卡片，到查看 D1/D2/D3/D8 自动校验与评估结果的完整流程。
 
 本项目中的“财务异常”仅指满足预设条件、值得进一步核查的财务关注信号，不代表相关公司存在财务造假，也不构成投资建议。
 
