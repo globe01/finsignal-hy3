@@ -17,6 +17,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 
 ## 在线 Demo 与演示视频
 
+![FinSignal-Hy3 界面预览](assets/interface.png)
 - 在线 Demo：https://finsignal.chemistryplsmodel.com
 - Demo 视频：[`finsignal-demo.mp4`](https://github.com/globe01/finsignal-hy3/releases/download/demo/finsignal-demo.mp4)，2 分钟以内，展示从选择真实财务样本、调用 Hy3 生成异常信号卡片，到查看 D1/D2/D3/D8 自动校验与评估结果的完整流程。
 
@@ -121,7 +122,7 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - [x] 接入真实上市公司公开数据（8 家 × 2021-2025，共 40 份年报、24 个三年窗口），并完成 7 条 Hy3 代表样本实跑；结构化数据见 `data/derived/real_financials_2021_2025.csv`，来源清单见 `data/derived/manifest.csv`。`eval/run_real_eval.py` 保留为离线覆盖计划，真实 D4/D5 主指标由 `eval/validity/real_signal_metrics.py` 基于人工复核文件计算，详见 [docs/real_data_sources.md](docs/real_data_sources.md) §7。
 - [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 双人盲评模板 `eval/validity/annotations_todo.csv` + 人工复核结果 `eval/validity/annotations_filled.csv` + 真实样本信号级人工标注 `eval/validity/real_signal_filled.csv`）
 - [x] Streamlit 最小可用 Demo（`app/streamlit_app.py`，上传/粘贴 → Hy3 → 卡片 + D1/D2/D3/D8 校验）
-- [x] 2 分钟以内 Demo 视频（[`demo.mp4`](demo.mp4)）
+- [x] 2 分钟以内 Demo 视频（[`finsignal-demo.mp4`](https://github.com/globe01/finsignal-hy3/releases/download/demo/finsignal-demo.mp4)）
 
 完整方案见 [docs/proposal.md](docs/proposal.md)。
 
@@ -263,7 +264,7 @@ finsignal-hy3/
 ## 提交前材料
 
 - 交付清单见 [`docs/final_submission_checklist.md`](docs/final_submission_checklist.md)。
-- 2 分钟 Demo 视频见 [`demo.mp4`](demo.mp4)，视频脚本见 [`docs/demo_video_script.md`](docs/demo_video_script.md)。
+- 2 分钟 Demo 视频见 [`finsignal-demo.mp4`](https://github.com/globe01/finsignal-hy3/releases/download/demo/finsignal-demo.mp4)，视频脚本见 [`docs/demo_video_script.md`](docs/demo_video_script.md)。
 - 双人盲评人工复核结果见 `eval/validity/annotations_filled.csv`；空白模板保留为 `eval/validity/annotations_todo.csv`，便于复现标注流程。
 - 真实样本 D4/D5 信号级人工标注见 `eval/validity/real_signal_filled.csv`；基于该文件可计算真实样本主指标。
 
