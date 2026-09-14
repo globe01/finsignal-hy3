@@ -20,7 +20,12 @@
 from __future__ import annotations
 
 import os
+import sys
 from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 import pandas as pd
 import streamlit as st
@@ -41,8 +46,6 @@ from app.schema import AnomalyCard, ScanOutput
 from eval.fact_eval import D3_FIELDS
 from eval.formula_eval import evaluate_d2
 from eval.rule_rubric import judge_cards, judge_d7, judge_d8
-
-ROOT = Path(__file__).resolve().parent.parent
 LOGO_SVG = (ROOT / "app" / "assets" / "logo.svg").read_text(encoding="utf-8")
 
 DISCLAIMER = (
@@ -110,27 +113,29 @@ def _inject_css() -> None:
         """
         <style>
         :root {
-            --fs-bg: #0d0f10;
-            --fs-bg-soft: #111315;
-            --fs-panel: #16191d;
-            --fs-panel-2: #1e2025;
-            --fs-panel-3: #242126;
-            --fs-line: rgba(230, 224, 214, 0.11);
-            --fs-line-strong: rgba(230, 224, 214, 0.20);
-            --fs-text: #f2efe9;
-            --fs-muted: #96938d;
-            --fs-soft: #c8c1b7;
-            --fs-red: #e2555c;
-            --fs-red-deep: #a93f46;
-            --fs-amber: #c8a45d;
-            --fs-green: #74b59a;
+            --fs-bg: #0b0d0e;
+            --fs-bg-soft: #101315;
+            --fs-panel: #15191c;
+            --fs-panel-2: #1b2024;
+            --fs-panel-3: #222429;
+            --fs-line: rgba(231, 226, 216, 0.12);
+            --fs-line-strong: rgba(231, 226, 216, 0.22);
+            --fs-text: #f4f0e9;
+            --fs-muted: #9d9a92;
+            --fs-soft: #ccc5b8;
+            --fs-red: #df565d;
+            --fs-red-deep: #a33f46;
+            --fs-amber: #d0a85b;
+            --fs-green: #78b79a;
             --fs-cyan: #72b8b2;
-            --fs-blue: #8ba7d4;
+            --fs-blue: #90acd8;
+            --fs-ink: #080909;
             --fs-focus: rgba(116, 181, 154, 0.35);
         }
 
         html, body, .stApp, [data-testid="stAppViewContainer"], [data-testid="stAppViewContainer"] > .main {
-            background: var(--fs-bg) !important;
+            background:
+                linear-gradient(180deg, #0b0d0e 0%, #101113 54%, #0c0e0f 100%) !important;
             color: var(--fs-text);
         }
 
@@ -140,7 +145,20 @@ def _inject_css() -> None:
             backdrop-filter: blur(10px);
         }
 
-        [data-testid="stToolbar"], [data-testid="stDecoration"], #MainMenu, footer {
+        header[data-testid="stHeader"]::before,
+        header[data-testid="stHeader"]::after {
+            background: transparent !important;
+        }
+
+        [data-testid="stToolbar"],
+        [data-testid="stDecoration"],
+        [data-testid="stStatusWidget"],
+        [data-testid="stHeaderActionElements"],
+        [data-testid="stDeployButton"],
+        .stDeployButton,
+        #MainMenu,
+        footer {
+            display: none !important;
             visibility: hidden;
             height: 0;
         }
@@ -152,12 +170,12 @@ def _inject_css() -> None:
         }
 
         [data-testid="stSidebar"] {
-            background: #15181d;
+            background: #12161a;
             border-right: 1px solid var(--fs-line);
         }
 
         [data-testid="stSidebar"] > div:first-child {
-            background: #15181d;
+            background: #12161a;
         }
 
         [data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
@@ -184,7 +202,7 @@ def _inject_css() -> None:
         }
         [data-testid="stTabs"] [aria-selected="true"] {
             color: var(--fs-text);
-            background: rgba(116, 181, 154, 0.10);
+            background: rgba(120, 183, 154, 0.11);
             border-bottom: 2px solid var(--fs-green);
         }
 
@@ -201,13 +219,13 @@ def _inject_css() -> None:
         /* buttons */
         .stButton > button,
         button[data-testid="baseButton-primary"] {
-            border: 1px solid rgba(226, 85, 92, 0.62) !important;
+            border: 1px solid rgba(223, 86, 93, 0.70) !important;
             border-radius: 8px;
-            background: linear-gradient(180deg, #e45a61 0%, #bb434b 100%) !important;
+            background: linear-gradient(180deg, #e25a61 0%, #b93f47 100%) !important;
             color: #fff7f3 !important;
             font-weight: 700;
             min-height: 2.9rem;
-            box-shadow: 0 10px 26px rgba(187, 67, 75, 0.24);
+            box-shadow: 0 14px 30px rgba(185, 63, 71, 0.26);
             transition: all 0.15s ease;
         }
         .stButton > button:hover,
@@ -219,7 +237,7 @@ def _inject_css() -> None:
         .stButton > button[kind="secondary"],
         button[data-testid="baseButton-secondary"],
         button[data-testid="baseButton-header"] {
-            background: #202328 !important;
+            background: #202428 !important;
             border: 1px solid rgba(200, 164, 93, 0.30) !important;
             color: #efe4cf !important;
             box-shadow: none;
@@ -232,12 +250,22 @@ def _inject_css() -> None:
             color: #f4efe5 !important;
         }
 
-        .stDownloadButton > button {
+        .stDownloadButton > button,
+        [data-testid="stFileUploader"] button,
+        [data-testid="stFileUploaderDropzone"] button {
             background: #202328 !important;
             border: 1px solid rgba(116, 181, 154, 0.45) !important;
             border-radius: 8px;
             color: #d9f0e6 !important;
             font-weight: 700;
+        }
+
+        .stDownloadButton > button:hover,
+        [data-testid="stFileUploader"] button:hover,
+        [data-testid="stFileUploaderDropzone"] button:hover {
+            background: #26302f !important;
+            border-color: rgba(120, 183, 154, 0.68) !important;
+            color: #effaf4 !important;
         }
 
         /* inputs */
@@ -318,15 +346,34 @@ def _inject_css() -> None:
 
         .fs-hero {
             background:
-                linear-gradient(180deg, rgba(255,255,255,0.050) 0%, rgba(255,255,255,0.018) 100%),
-                linear-gradient(115deg, rgba(116,181,154,0.10) 0%, rgba(169,63,70,0.11) 100%);
+                linear-gradient(180deg, rgba(255,255,255,0.052) 0%, rgba(255,255,255,0.018) 100%),
+                linear-gradient(120deg, rgba(120,183,154,0.12) 0%, rgba(144,172,216,0.06) 45%, rgba(163,63,70,0.11) 100%);
             border: 1px solid rgba(230, 224, 214, 0.12);
             border-radius: 8px;
-            padding: 1.75rem 1.9rem;
+            padding: 1.6rem;
             margin-bottom: 1.4rem;
         }
+        .fs-hero-grid {
+            display: grid;
+            grid-template-columns: minmax(0, 1.35fr) minmax(310px, 0.65fr);
+            gap: 1.35rem;
+            align-items: stretch;
+        }
+        .fs-kicker {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            color: #d7c497;
+            border: 1px solid rgba(208, 168, 91, 0.35);
+            background: rgba(208, 168, 91, 0.10);
+            border-radius: 999px;
+            padding: 0.25rem 0.7rem;
+            font-size: 0.78rem;
+            font-weight: 760;
+            margin-bottom: 0.85rem;
+        }
         .fs-hero-title {
-            font-size: 1.9rem;
+            font-size: 2.1rem;
             font-weight: 800;
             margin: 0 0 0.45rem;
         }
@@ -334,7 +381,7 @@ def _inject_css() -> None:
             color: var(--fs-soft);
             font-size: 1rem;
             line-height: 1.65;
-            max-width: 760px;
+            max-width: 820px;
             margin: 0;
         }
 
@@ -352,6 +399,36 @@ def _inject_css() -> None:
         }
         .fs-strip-label { color: var(--fs-muted); font-size: 0.75rem; margin-bottom: 0.2rem; }
         .fs-strip-value { color: var(--fs-text); font-size: 1rem; font-weight: 700; }
+
+        .fs-terminal {
+            background: rgba(8, 9, 9, 0.56);
+            border: 1px solid rgba(231, 226, 216, 0.14);
+            border-radius: 8px;
+            padding: 1rem;
+            height: 100%;
+        }
+        .fs-terminal-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 0.75rem;
+            border-bottom: 1px solid var(--fs-line);
+            padding-bottom: 0.7rem;
+            margin-bottom: 0.75rem;
+        }
+        .fs-terminal-title { color: var(--fs-text); font-size: 0.9rem; font-weight: 800; }
+        .fs-status-dot { width: 0.5rem; height: 0.5rem; border-radius: 999px; background: var(--fs-green); display: inline-block; margin-right: 0.35rem; }
+        .fs-terminal-row {
+            display: grid;
+            grid-template-columns: 1fr auto;
+            gap: 1rem;
+            padding: 0.52rem 0;
+            border-bottom: 1px solid rgba(231, 226, 216, 0.075);
+            font-size: 0.88rem;
+        }
+        .fs-terminal-row:last-child { border-bottom: 0; }
+        .fs-terminal-row span:first-child { color: var(--fs-muted); }
+        .fs-terminal-row span:last-child { color: var(--fs-text); font-weight: 780; text-align: right; }
 
         .fs-note {
             border: 1px solid rgba(214, 165, 63, 0.35);
@@ -372,6 +449,57 @@ def _inject_css() -> None:
         }
         .fs-panel-title h2 { font-size: 1.15rem; margin: 0; }
         .fs-panel-title span { color: var(--fs-muted); font-size: 0.88rem; }
+
+        .fs-action-hint,
+        .fs-command-row {
+            display: grid;
+            border: 1px solid var(--fs-line);
+            border-radius: 8px;
+            background: rgba(255,255,255,0.023);
+            padding: 1rem;
+        }
+        .fs-command-row {
+            grid-template-columns: minmax(0, 1fr) minmax(180px, 220px);
+            gap: 1rem;
+            align-items: end;
+            margin: 1.2rem 0 0.3rem;
+        }
+        .fs-command-title { color: var(--fs-text); font-size: 1rem; font-weight: 800; margin-bottom: 0.25rem; }
+        .fs-command-sub { color: var(--fs-muted); font-size: 0.88rem; line-height: 1.55; }
+        .fs-action-hint {
+            grid-template-columns: 1fr;
+            min-height: 2.9rem;
+            align-content: center;
+            color: var(--fs-soft);
+            font-size: 0.88rem;
+            line-height: 1.55;
+        }
+
+        .fs-risk-grid {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 0.85rem;
+            margin: 0.8rem 0 1.1rem;
+        }
+        .fs-risk-tile {
+            background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.018));
+            border: 1px solid var(--fs-line);
+            border-radius: 8px;
+            padding: 0.95rem 1rem;
+            min-height: 6.2rem;
+        }
+        .fs-risk-label { color: var(--fs-muted); font-size: 0.76rem; font-weight: 740; margin-bottom: 0.35rem; }
+        .fs-risk-value { color: var(--fs-text); font-size: 1.55rem; font-weight: 850; line-height: 1.1; }
+        .fs-risk-sub { color: var(--fs-soft); font-size: 0.82rem; margin-top: 0.45rem; line-height: 1.45; }
+        .fs-risk-tile.high { border-color: rgba(223, 86, 93, 0.44); background: rgba(223, 86, 93, 0.08); }
+        .fs-risk-tile.ok { border-color: rgba(120, 183, 154, 0.42); background: rgba(120, 183, 154, 0.07); }
+        .fs-mini-bars { margin: 0.8rem 0 1.2rem; }
+        .fs-mini-row { display: grid; grid-template-columns: 96px minmax(0, 1fr) 44px; gap: 0.7rem; align-items: center; margin: 0.42rem 0; }
+        .fs-mini-row span { font-size: 0.82rem; color: var(--fs-soft); }
+        .fs-mini-track { height: 8px; border-radius: 999px; background: rgba(255,255,255,0.07); overflow: hidden; }
+        .fs-mini-fill { height: 100%; border-radius: 999px; background: var(--fs-green); }
+        .fs-mini-fill.red { background: var(--fs-red); }
+        .fs-mini-fill.amber { background: var(--fs-amber); }
 
         .fs-help {
             background: rgba(255,255,255,0.025);
@@ -431,14 +559,29 @@ def _inject_css() -> None:
             color: var(--fs-soft) !important;
         }
 
+        [data-testid="stVerticalBlockBorderWrapper"] {
+            border-color: var(--fs-line) !important;
+            border-radius: 8px !important;
+            background: linear-gradient(180deg, rgba(255,255,255,0.034), rgba(255,255,255,0.014)) !important;
+            box-shadow: 0 16px 42px rgba(0, 0, 0, 0.20);
+        }
+        [data-testid="stVerticalBlockBorderWrapper"] > div {
+            border-color: transparent !important;
+            background: transparent !important;
+        }
+
         .fs-empty-state {
             text-align: center; color: var(--fs-muted); padding: 2.5rem 1rem;
             border: 1px dashed var(--fs-line); border-radius: 8px;
         }
+        .fs-empty-state strong { color: var(--fs-text); display: block; margin-bottom: 0.35rem; font-size: 1rem; }
 
         @media (max-width: 760px) {
             [data-testid="stAppViewContainer"] > .main .block-container { padding-top: 1.6rem; }
+            .fs-hero-grid { grid-template-columns: 1fr; }
             .fs-strip { grid-template-columns: 1fr; }
+            .fs-risk-grid { grid-template-columns: 1fr; }
+            .fs-command-row { grid-template-columns: 1fr; }
             .fs-hero-title { font-size: 1.45rem; }
             .fs-card-head { display: block; }
             .fs-card-head .fs-pill { margin-top: 0.6rem; }
@@ -465,23 +608,38 @@ def _render_header() -> None:
     st.markdown(
         """
         <div class="fs-hero">
-          <h1 class="fs-hero-title">财务异常信号扫描</h1>
-          <p class="fs-hero-sub">
-            基于上市公司结构化财务数据，生成带事实依据、计算过程、替代解释和结论边界的审慎分析。
-            支持选择真实公司样本、上传表格、在线录入或直接粘贴数据。
-          </p>
-          <div class="fs-strip">
-            <div class="fs-strip-item">
-              <div class="fs-strip-label">Model</div>
-              <div class="fs-strip-value">Hy3 / TokenHub</div>
+          <div class="fs-hero-grid">
+            <div>
+              <div class="fs-kicker">Open-ended Finance AI Evaluation</div>
+              <h1 class="fs-hero-title">财报异常信号工作台</h1>
+              <p class="fs-hero-sub">
+                面向制造业上市公司连续财务数据，输出可复核的异常信号卡片：事实依据、公式过程、替代解释、核查建议与结论边界同时呈现。
+              </p>
+              <div class="fs-strip">
+                <div class="fs-strip-item">
+                  <div class="fs-strip-label">Model</div>
+                  <div class="fs-strip-value">Hy3 / TokenHub</div>
+                </div>
+                <div class="fs-strip-item">
+                  <div class="fs-strip-label">Evaluation</div>
+                  <div class="fs-strip-value">D1-D8 Rubric</div>
+                </div>
+                <div class="fs-strip-item">
+                  <div class="fs-strip-label">Boundary</div>
+                  <div class="fs-strip-value">Research Demo</div>
+                </div>
+              </div>
             </div>
-            <div class="fs-strip-item">
-              <div class="fs-strip-label">Evidence</div>
-              <div class="fs-strip-value">Fact Basis + Formula</div>
-            </div>
-            <div class="fs-strip-item">
-              <div class="fs-strip-label">Boundary</div>
-              <div class="fs-strip-value">Research Demo Only</div>
+            <div class="fs-terminal">
+              <div class="fs-terminal-head">
+                <div class="fs-terminal-title"><span class="fs-status-dot"></span>Project Snapshot</div>
+                <span class="fs-pill">Ready</span>
+              </div>
+              <div class="fs-terminal-row"><span>真实年报样本</span><span>8 家 · 40 份</span></div>
+              <div class="fs-terminal-row"><span>三年评测窗口</span><span>24 个</span></div>
+              <div class="fs-terminal-row"><span>Hy3 真实实跑</span><span>7 条</span></div>
+              <div class="fs-terminal-row"><span>人工信号复核</span><span>56 项</span></div>
+              <div class="fs-terminal-row"><span>离线单元测试</span><span>220 passed</span></div>
             </div>
           </div>
         </div>
@@ -600,7 +758,6 @@ def _on_file_upload() -> None:
 
 
 def _render_sample_tab() -> None:
-    st.markdown("从已结构化的 8 家制造业公司中选择窗口，自动填入对应财务数据。")
     opts = sample_options(st.session_state["samples"])
     st.selectbox(
         "选择示例公司与窗口",
@@ -621,7 +778,6 @@ def _render_sample_tab() -> None:
 
 
 def _render_upload_tab() -> None:
-    st.markdown("下载模板，按年度填写后上传 CSV 或 Excel。")
     col1, col2 = st.columns([1, 2])
     with col1:
         template_path = ROOT / "data" / "derived" / "finsignal_input_template.csv"
@@ -644,7 +800,6 @@ def _render_upload_tab() -> None:
 
 
 def _render_table_tab() -> None:
-    st.markdown("直接在线填写各年度财务数据，缺失年份留空即可。")
     edited = st.data_editor(
         st.session_state["input_df"],
         column_config={
@@ -664,7 +819,6 @@ def _render_table_tab() -> None:
 
 
 def _render_paste_tab() -> None:
-    st.markdown("高级：直接粘贴符合格式的财务文本。")
     st.text_area(
         "财务数据文本",
         key="scan_text",
@@ -675,16 +829,10 @@ def _render_paste_tab() -> None:
 
 def _render_input_section() -> None:
     st.markdown(
-        f'<div class="fs-panel-title"><h2>{_svg_icon("database", 18)} 输入数据</h2></div>',
+        f'<div class="fs-panel-title"><h2>{_svg_icon("database", 18)} 数据输入</h2><span>真实样本 / 上传 / 录入 / 粘贴</span></div>',
         unsafe_allow_html=True,
     )
 
-    tab_labels = [
-        f"{_svg_icon('database', 16)} 选择样本",
-        f"{_svg_icon('upload', 16)} 上传 CSV/Excel",
-        f"{_svg_icon('table', 16)} 表格录入",
-        f"{_svg_icon('paste', 16)} 粘贴文本",
-    ]
     tabs = st.tabs(["选择样本", "上传 CSV/Excel", "表格录入", "粘贴文本"])
     with tabs[0]:
         _render_sample_tab()
@@ -696,6 +844,10 @@ def _render_input_section() -> None:
         _render_paste_tab()
 
     # 元信息行
+    st.markdown(
+        '<div class="fs-panel-title"><h3>扫描上下文</h3><span>用于生成模型提示词</span></div>',
+        unsafe_allow_html=True,
+    )
     meta_cols = st.columns([2, 2, 2, 2])
     st.session_state["scan_company"] = meta_cols[0].text_input(
         "公司名", value=st.session_state["scan_company"], key="meta_company"
@@ -827,6 +979,74 @@ def _score_color(score: float | None) -> str:
     return "var(--fs-red)"
 
 
+def _percent_text(value: float | None) -> str:
+    if value is None:
+        return "--"
+    return f"{value * 100:.0f}%"
+
+
+def _render_risk_overview(cards: list[AnomalyCard], checks: dict) -> None:
+    judge, d2, d1, d3 = checks["judge"], checks["d2"], checks["d1"], checks["d3"]
+    counts = {"high": 0, "medium": 0, "low": 0}
+    for card in cards:
+        counts[card.severity.value] = counts.get(card.severity.value, 0) + 1
+    top = "高" if counts.get("high") else ("中" if counts.get("medium") else "低")
+    top_class = "high" if counts.get("high") else ""
+    d7_mean = (judge["d7_sum"] / judge["n_cards"]) if judge.get("n_cards") else None
+    d8_viol = judge.get("d8_violations", 0)
+    compliance = (1 - d8_viol / judge["n_cards"]) if judge.get("n_cards") else None
+    d7_text = f"{d7_mean:.2f}" if d7_mean is not None else "--"
+    fact_complete = (d3["all_ten_fields"] / d3["total_facts"]) if d3.get("total_facts") else None
+    formula_total = d2.get("d2_total") if d2.get("d2_mode") == "full" else d2.get("d2_struct_total")
+    formula_hit = d2.get("d2_hits") if d2.get("d2_mode") == "full" else d2.get("d2_struct_pass")
+    formula_rate = (formula_hit / formula_total) if formula_total else None
+
+    st.markdown(
+        f"""
+        <div class="fs-risk-grid">
+          <div class="fs-risk-tile {top_class}">
+            <div class="fs-risk-label">最高风险等级</div>
+            <div class="fs-risk-value">{top}</div>
+            <div class="fs-risk-sub">高 {counts.get('high', 0)} · 中 {counts.get('medium', 0)} · 低 {counts.get('low', 0)}</div>
+          </div>
+          <div class="fs-risk-tile">
+            <div class="fs-risk-label">信号卡片</div>
+            <div class="fs-risk-value">{len(cards)}</div>
+            <div class="fs-risk-sub">覆盖 {len(set(c.signal_type.value for c in cards))} 类信号</div>
+          </div>
+          <div class="fs-risk-tile ok">
+            <div class="fs-risk-label">安全合规</div>
+            <div class="fs-risk-value">{_percent_text(compliance)}</div>
+            <div class="fs-risk-sub">D8 违规 {d8_viol} 张</div>
+          </div>
+          <div class="fs-risk-tile">
+            <div class="fs-risk-label">解释边界</div>
+            <div class="fs-risk-value">{d7_text}</div>
+            <div class="fs-risk-sub">D7 规则 Rubric / 5</div>
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    bars = [
+        ("事实值", d1.get("rate"), "green"),
+        ("证据 10 字段", fact_complete, "amber" if fact_complete and fact_complete < 1 else "green"),
+        ("公式结构", formula_rate, "green"),
+        ("安全边界", compliance, "red" if compliance is not None and compliance < 1 else "green"),
+    ]
+    rows = []
+    for label, value, tone in bars:
+        width = 0 if value is None else max(0, min(100, value * 100))
+        text = _percent_text(value)
+        tone_class = "red" if tone == "red" else ("amber" if tone == "amber" else "")
+        rows.append(
+            f'<div class="fs-mini-row"><span>{label}</span><div class="fs-mini-track">'
+            f'<div class="fs-mini-fill {tone_class}" style="width:{width:.0f}%"></div></div><span>{text}</span></div>'
+        )
+    st.markdown(f'<div class="fs-mini-bars">{"".join(rows)}</div>', unsafe_allow_html=True)
+
+
 def _show_results(out: ScanOutput) -> None:
     cards = out.cards
     st.markdown(
@@ -834,12 +1054,17 @@ def _show_results(out: ScanOutput) -> None:
         unsafe_allow_html=True,
     )
     if not cards:
-        st.info("模型未识别到异常信号。阴性结果在评测中用于误报率（D5）观测。")
+        st.markdown(
+            '<div class="fs-empty-state"><strong>未识别到目标异常信号</strong>当前输出可作为阴性样本观察误报控制；仍建议结合原始年报附注复核。</div>',
+            unsafe_allow_html=True,
+        )
         return
 
     # ---- 校验面板（D1/D2/D3/D7/D8）----
     checks = _compute_checks(out)
     judge, d2, d1, d3 = checks["judge"], checks["d2"], checks["d1"], checks["d3"]
+
+    _render_risk_overview(cards, checks)
 
     st.markdown(f'<div class="fs-panel-title"><h3>{_svg_icon("check", 16)} 本地校验面板（D1/D2/D3/D7/D8）</h3></div>', unsafe_allow_html=True)
     c1, c2, c3, c4 = st.columns(4)
@@ -948,9 +1173,17 @@ def main() -> None:
     temperature = _render_sidebar()
     _render_input_section()
 
-    run_col, _ = st.columns([1, 4])
+    st.markdown(
+        f'<div class="fs-panel-title"><h2>{_svg_icon("scan", 18)} 执行扫描</h2><span>Hy3 生成 / 本地规则校验</span></div>',
+        unsafe_allow_html=True,
+    )
+    run_col, hint_col = st.columns([1, 4])
     if run_col.button(f"运行扫描", type="primary", use_container_width=True):
         _run_scan(temperature)
+    hint_col.markdown(
+        '<div class="fs-action-hint">输出会自动进入异常信号卡片、本地 D1/D2/D3/D7/D8 校验和结论边界检查；仅用于研究演示，不构成投资建议。</div>',
+        unsafe_allow_html=True,
+    )
 
     if "last_output" in st.session_state:
         _show_results(st.session_state["last_output"])
