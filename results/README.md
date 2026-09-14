@@ -88,7 +88,7 @@ python -m eval.validity.export_blind \
   - 边界样本：`generator/negative.py::make_boundary_control`
   - 类别覆盖：阴性 / 低·中·高三档注入 / 临界阈值 / 长文本 / 术语堆砌 / 年份错置（详见 `docs/report.md` §评测样本）
 - 数据性质：**全部为合成（synthetic）数据**，由清洁基底 + 受控异常注入生成，**不冒充任何真实上市公司**，
-  不构成任何公司存在财务造假的暗示。真实数据接入为后续阶段（Phase 3）。
+  不构成任何公司存在财务造假的暗示。真实年报派生数据已另存于 `data/derived/`，不混入本目录的 7 个离线自检锚点。
 - 数据集「版本」即本仓库当前 `generator/` 与 `eval/run_eval.py` 的代码状态；复现请对齐对应 commit。
 
 ## ⚠️ 关键解读边界（务必区分）
@@ -102,5 +102,16 @@ python -m eval.validity.export_blind \
    `results/online_summary.json` 与 `results/online_runs_summary.csv` 两个脱敏汇总，详见 `docs/report.md` §5。
 3. D7/D8 的真值需人工标注（`docs/annotation_guide.md`）与 Hy3 语义评审交叉确认，
    当前规则 Rubric 与 Hy3-as-Judge 两条路径只报**一致性（agreement）**，不报准确性（accuracy）。
+
+## 真实年报与人工复核产物
+
+本目录的离线自检文件只验证评估器实现。真实公开年报的结构化派生数据、7 条 Hy3 实跑输出和人工信号级复核结果位于：
+
+- `data/derived/manifest.csv`：40 条 CNINFO 来源清单；
+- `data/derived/real_financials_2021_2025.csv`：8 家公司 × 5 年结构化财务字段；
+- `data/derived/hy3_real_outputs.jsonl` 与 `data/derived/hy3_real_eval_results.csv`：7 条真实样本实跑及规则快照；
+- `eval/validity/real_signal_filled.csv`：人工复核输入，指标由 `eval/validity/real_signal_metrics.py` 计算。
+
+这些结果是小规模真实场景验证，不应与 40 个合成窗口的在线性能数字合并解读。
 
 详见 `docs/report.md`（评测报告）与 `docs/proposal.md`（方法学方案）。

@@ -46,6 +46,8 @@ cache/
 tmp/
 temp/
 .tmp_pytest/
+.tmp_pytest*/
+.pytest-tmp*/
 
 # Local/private source materials
 data/raw/

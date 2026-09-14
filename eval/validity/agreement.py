@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 from typing import Dict, List, Optional
 
@@ -77,6 +78,17 @@ def _to_float(v):
         return np.nan
 
 
+def _json_safe(value):
+    """Convert NaN/Infinity to JSON null for standards-compliant CLI output."""
+    if isinstance(value, float) and not math.isfinite(value):
+        return None
+    if isinstance(value, dict):
+        return {key: _json_safe(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_json_safe(item) for item in value]
+    return value
+
+
 def compute_agreement(df: pd.DataFrame) -> Dict:
     """输入标注 DataFrame，输出一致性结果字典（status: ok / pending）。"""
     needed = ["case_id", "card_id", "annotator", "round", "signal_valid",
@@ -123,13 +135,26 @@ def compute_agreement(df: pd.DataFrame) -> Dict:
                 pb[["case_id", "card_id", "signal_valid_code"]],
                 on=["case_id", "card_id"], suffixes=("_a", "_b"))
             if len(merged) >= 2:
-                k = cohen_kappa_score(merged["signal_valid_code_a"], merged["signal_valid_code_b"])
-                pairwise.append(float(k))
-                detail.append({"pair": f"{a}-{b}", "n_shared": int(len(merged)), "kappa": float(k)})
+                a_values = merged["signal_valid_code_a"].nunique(dropna=True)
+                b_values = merged["signal_valid_code_b"].nunique(dropna=True)
+                if a_values < 2 or b_values < 2:
+                    detail.append({
+                        "pair": f"{a}-{b}",
+                        "n_shared": int(len(merged)),
+                        "kappa": None,
+                        "reason": "统计不可定义：至少一名标注者只有一个类别",
+                    })
+                else:
+                    k = cohen_kappa_score(merged["signal_valid_code_a"], merged["signal_valid_code_b"])
+                    pairwise.append(float(k))
+                    detail.append({"pair": f"{a}-{b}", "n_shared": int(len(merged)), "kappa": float(k)})
         if pairwise:
             m["cohen_kappa_pairwise"] = {
                 "mean": float(np.mean(pairwise)), "min": float(np.min(pairwise)),
                 "max": float(np.max(pairwise)), "pairs": detail}
+        elif detail:
+            m["cohen_kappa_pairwise"] = {
+                "mean": None, "min": None, "max": None, "pairs": detail}
         if n_annot >= 3:
             # Fleiss kappa：构建 (n_items × n_categories) 计数矩阵
             items = valid.groupby(["case_id", "card_id"])
@@ -162,9 +187,20 @@ def compute_agreement(df: pd.DataFrame) -> Dict:
                               pb[["case_id", "card_id", "d7_num"]],
                               on=["case_id", "card_id"], suffixes=("_a", "_b"))
             if len(merged) >= 3:
-                rho, p = spearmanr(merged["d7_num_a"], merged["d7_num_b"])
-                sp_detail.append({"pair": f"{a}-{b}", "n": int(len(merged)),
-                                  "spearman_rho": float(rho), "p": float(p)})
+                a_values = merged["d7_num_a"].nunique(dropna=True)
+                b_values = merged["d7_num_b"].nunique(dropna=True)
+                if a_values < 2 or b_values < 2:
+                    sp_detail.append({
+                        "pair": f"{a}-{b}",
+                        "n": int(len(merged)),
+                        "spearman_rho": None,
+                        "p": None,
+                        "reason": "统计不可定义：至少一名标注者的 d7_score 为常量",
+                    })
+                else:
+                    rho, p = spearmanr(merged["d7_num_a"], merged["d7_num_b"])
+                    sp_detail.append({"pair": f"{a}-{b}", "n": int(len(merged)),
+                                      "spearman_rho": float(rho), "p": float(p)})
         if sp_detail:
             m["spearman_d7_pairwise"] = sp_detail
         else:
@@ -276,7 +312,7 @@ def main() -> None:
 
     result = compute_agreement(df)
     if args.json:
-        print(json.dumps(result, ensure_ascii=False, indent=2))
+        print(json.dumps(_json_safe(result), ensure_ascii=False, indent=2, allow_nan=False))
         return
 
     # 人类可读摘要

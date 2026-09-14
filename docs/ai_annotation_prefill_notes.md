@@ -26,7 +26,7 @@
 - Rw = 13/19 = 0.6842
 - over_inference_rate = 5/11 = 0.4545
 
-卡片级人工标注共 106 行，覆盖 53 张模型卡片与 A/B 两名标注者。当前 A/B 在 `signal_valid` 与 `d7_score` 上完全一致；由于 `signal_valid` 为单一类别且 `d7_score` 为常量，Cohen's kappa 与 Spearman 在统计定义上返回 `NaN`，这表示指标不可定义，不表示脚本失败或标注缺失。
+卡片级人工标注共 106 行，覆盖 53 张模型卡片与 A/B 两名标注者。当前 A/B 在 `signal_valid` 与 `d7_score` 上完全一致；由于 `signal_valid` 为单一类别且 `d7_score` 为常量，Cohen's kappa 与 Spearman 在统计上不可定义，CLI JSON 以 `null` 表示，这不表示脚本失败或标注缺失。
 
 ## 复现实验命令
 

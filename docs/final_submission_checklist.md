@@ -8,6 +8,7 @@
 - README 已包含项目介绍、目标用户、场景价值、运行方式、环境要求、在线 Demo、免责声明和 License。
 - Hy3 调用通过 `.env` / 环境变量读取 `HY3_API_KEY`，仓库仅提交 `.env.example`；`.env`、原始 PDF、在线原始输出均在 `.gitignore` 中忽略。
 - Streamlit Demo 支持真实样本、CSV/Excel 上传、表格录入和文本粘贴四种输入方式。
+- `.github/workflows/ci.yml` 已加入自动化检查：依赖安装、pytest、离线评测自检和真实样本 dry-run。
 
 ## 2. 应用侧
 
@@ -33,13 +34,14 @@
 - 判别力验证：`data/derived/discriminative_validation.csv`，32 条 fixture，当前排序为 good 100.00 > medium 85.41 > bad 79.89 > adversarial 57.09，排序假设全部 PASS。
 - 一致性验证：`data/derived/consistency_validation.csv`，32 条 fixture 重复 3 轮，共 96 行，total 分数 max_delta = 0。
 - 真实 Hy3 快照：`data/derived/hy3_real_eval_results.csv`，7 条样本当前规则评分均分 94.00，READY 均分 96.25，PARTIAL/N-A 均分 91.00。
-- 人工一致性：`eval/validity/annotations_filled.csv` 已提交 53 张卡片 × A/B 两名标注者 = 106 行人工复核结果；`agreement.py` 状态为 `ok`。因当前 `signal_valid` 为单一类别且 `d7_score` 为常量，Cohen's kappa / Spearman 统计上不可定义并返回 `NaN`，不代表缺失。
+- 人工一致性：`eval/validity/annotations_filled.csv` 已提交 53 张卡片 × A/B 两名标注者 = 106 行人工复核结果；`agreement.py` 状态为 `ok`。因当前 `signal_valid` 为单一类别且 `d7_score` 为常量，Cohen's kappa / Spearman 统计上不可定义，CLI JSON 以 `null` 表示，不代表缺失。
 - 真实样本 D4/D5：`eval/validity/real_signal_filled.csv` 已提交 7 条真实 Hy3 输出 × 8 类信号 × A/B 两名标注者 = 112 行人工复核结果；指标为 MRhigh=0.50、P=0.5455、R=0.75、Rw=0.6842、over_inference_rate=0.4545。
 
 ## 6. 分析报告
 
 - `docs/report.md` 已包含场景选择理由、样本构造、评估维度设计、在线评测、判别力验证、一致性验证、典型失败模式、模型能力边界和后续工作。
 - `docs/manual_review_notes.md` 与 `docs/manual_gold_mini.md` 记录轻量人工抽检和 mini gold，用于说明规则快照与业务真值的边界。
+- `docs/real_data_sources.md` 记录 8 家公司、40 份年报的来源索引、字段口径、缺失值处理和真实样本人工复核结果。
 
 ## 7. Demo 视频
 

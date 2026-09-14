@@ -104,7 +104,8 @@ for folder in sorted(RAW.iterdir()):
             "year": year,
             "report_title": title,
             "source": "CNINFO",
-            "source_url": "",
+            # Stable official disclosure index; report_title/year identify the specific report.
+            "source_url": f"https://www.cninfo.com.cn/new/disclosure/stock?stockCode={stock_code}",
             "local_raw_path": str(pdf.relative_to(ROOT)),
             "report_date": report_date,
             "data_type": "real_raw",

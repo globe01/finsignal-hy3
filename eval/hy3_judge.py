@@ -16,7 +16,7 @@
    「确认已知答案」，分数没有意义。本模块的 prompt 里不含任何 gold 信息。
 2. **同族自评存在自我偏好偏差。** 生成与评审都是 Hy3，D7 分数系统性偏高是可预期的。
    因此本模块输出**不是** D7 的真值，只能与规则 Rubric 并列上报，并计算一致性。
-   要拿到 D7 真值必须做人工标注（`docs/annotation_guide.md`，待补）。
+   要拿到 D7 真值必须做人工标注（`docs/annotation_guide.md`，正式结果见 `eval/validity/annotations_filled.csv`）。
 3. **每处扣分必须给出原文引用。** `evidence` 字段强制要求引用卡片里的具体文字，
    便于人工抽查 Judge 是否在编造理由。无引用的扣分在聚合时标记为 unverifiable。
 4. **一致性 ≠ 准确性。** `compare_judges()` 给出的是两条路径的吻合度，

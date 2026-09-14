@@ -5,9 +5,12 @@
 """
 from __future__ import annotations
 
+import json
+import math
+
 import pandas as pd
 
-from eval.validity.agreement import compute_agreement
+from eval.validity.agreement import _json_safe, compute_agreement
 
 
 def _df(rows):
@@ -62,3 +65,9 @@ def test_repeat_eval_fluctuation():
     flu = out["metrics"]["repeat_eval_fluctuation"]
     assert isinstance(flu, dict) and flu["n_repeated_cells"] == 1
     assert flu["max_std"] is not None and flu["max_std"] > 0
+
+
+def test_json_safe_converts_undefined_metrics_to_null():
+    payload = _json_safe({"undefined": math.nan, "nested": [math.inf, 1.0]})
+    assert payload == {"undefined": None, "nested": [None, 1.0]}
+    json.dumps(payload, allow_nan=False)

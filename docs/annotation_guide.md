@@ -116,7 +116,7 @@ python -m eval.validity.export_blind \
 
 ## 6. 与报告的关系
 
-- `docs/report.md` 的 D7/D8 真值章节在标注完成前标注 `pending`。
+- `docs/report.md` 的 D7/D8 真值章节当前引用 `eval/validity/annotations_filled.csv`；若换用新一批标注且数据不足，脚本会按规则输出 `pending`。
 - 规则 Rubric 与 Hy3-as-Judge 与人工标注的**一致性**称为 *agreement*（一致性），
   **绝不称为 accuracy（准确性）**——只有人工标注才是真值来源。
 - 任何阶段都不得用规则 Rubric 或 Hy3-as-Judge 的分数冒充「人工验证通过」。

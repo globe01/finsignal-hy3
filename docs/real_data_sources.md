@@ -1,6 +1,6 @@
 # 真实公开年报样本说明
 
-> 本文档说明 FinSignal-Hy3 在 Phase 3 中接入的真实公开年报样本。原始 PDF 年报仅用于本地留档与字段复核，放置在 `data/raw/` 下并被 `.gitignore` 忽略，不进入开源仓库。后续提交到仓库的应为脱敏/结构化后的派生数据、来源清单与评测结果。
+> 本文档说明 FinSignal-Hy3 在 Phase 3 中接入的真实公开年报样本。原始 PDF 年报仅用于本地留档与字段复核，放置在 `data/raw/` 下并被 `.gitignore` 忽略，不进入开源仓库。仓库已提交脱敏/结构化派生数据、来源清单、Hy3 小规模实跑结果与人工复核指标。
 
 ## 1. 样本规模
 
@@ -74,9 +74,9 @@ data/raw/cninfo/601012_LONGI/LONGI_601012_2024_annual_report_revised.pdf
 
 若其他公司后续发现年报修订版，应按同一规则处理：优先采用最新版/修订版，并在来源清单中记录原公告标题、修订版公告标题、公告日期和备注。
 
-## 5. 后续派生数据计划
+## 5. 已提交的派生数据
 
-原始 PDF 不直接进入评测脚本。下一步应从 40 份年报中整理两个可提交文件：
+原始 PDF 不直接进入评测脚本；40 份年报已整理为两个可提交文件：
 
 ```text
 data/derived/manifest.csv
@@ -87,9 +87,11 @@ data/derived/real_financials_2021_2025.csv
 
 ```csv
 sample_id,company,stock_code,exchange,year,report_title,source,source_url,local_raw_path,report_date,data_type,notes
-catl_2024,宁德时代,300750,SZSE,2024,宁德时代：2024年年度报告,CNINFO,,data/raw/cninfo/300750_CATL/CATL_300750_2024_annual_report.pdf,2025-03-15,real_raw,
-longi_2024,隆基绿能,601012,SSE,2024,隆基绿能：2024年年度报告（修订版）,CNINFO,,data/raw/cninfo/601012_LONGI/LONGI_601012_2024_annual_report_revised.pdf,2025-05-07,real_raw,使用修订版
+catl_2024,宁德时代,300750,SZSE,2024,宁德时代：2024年年度报告,CNINFO,https://www.cninfo.com.cn/new/disclosure/stock?stockCode=300750,data/raw/cninfo/300750_CATL/CATL_300750_2024_annual_report.pdf,2025-03-15,real_raw,
+longi_2024,隆基绿能,601012,SSE,2024,隆基绿能：2024年年度报告（修订版）,CNINFO,https://www.cninfo.com.cn/new/disclosure/stock?stockCode=601012,data/raw/cninfo/601012_LONGI/LONGI_601012_2024_annual_report_revised.pdf,2025-05-07,real_raw,使用修订版
 ```
+
+`source_url` 为 CNINFO 官方公司披露索引页；具体年报由 `report_title`、`year` 和 `local_raw_path` 唯一对应。公告日期缺失时保持为空并在 `notes` 中标明，不把报告期日期当作公告日期。
 
 `real_financials_2021_2025.csv` 用于记录结构化财务字段：
 
@@ -110,7 +112,7 @@ company,stock_code,year,revenue,cogs,net_profit,cfo,accounts_receivable,inventor
 
 > 本项目除 40 个合成注入评测窗口外，额外收集 8 家制造业上市公司 2021-2025 年共 40 份公开年度报告，覆盖新能源电池、新能源汽车、光伏、工程机械、成熟家电、化工材料、通信设备和医药制造等子行业。真实年报样本用于验证应用在公开财报场景中的可用性，并为人工一致性标注和典型案例分析提供材料。原始 PDF 仅本地留档，不进入仓库；仓库仅提交来源清单、结构化派生数据和脱敏评测结果。
 
-## 7. 接入进度（实时状态，提交前请校对）
+## 7. 接入与评测状态（提交前请校对）
 
 > 数字均与仓库内 `data/derived/manifest.csv`、`data/derived/real_financials_2021_2025.csv` 一致；
 > 任一字段若与本节不一致，以 CSV 为准并请补回本节。
@@ -124,6 +126,13 @@ company,stock_code,year,revenue,cogs,net_profit,cfo,accounts_receivable,inventor
   - 已从 PDF 封面或重要提示页提取：**19 条**（精度到月，1 条到日），覆盖格力、比亚迪、宁德时代、中兴通讯大部分年份。
   - 待补公告日期：**21 条**（notes 已统一标注「待补公告日期」），主要涉及三一重工、恒瑞医药、万华化学、隆基绿能，以及中兴 2021 等少量年份——这些 PDF 前两页未出现「次年年-月」格式的披露日期，需后续在巨潮资讯网公告页面回填精确日期。
 - **隆基绿能 2024** 使用修订版（`LONGI_601012_2024_annual_report_revised.pdf`），notes 标注「使用修订版」。
+
+### 7.1.1 真实样本评测产物
+
+- `data/derived/hy3_real_outputs.jsonl`：7 条代表性真实窗口的 Hy3 原始输出脱敏留档。
+- `data/derived/hy3_real_eval_results.csv`：同批输出的规则质量快照，READY 均分 96.25，PARTIAL/N-A 均分 91.00，总均分 94.00。
+- `eval/validity/real_signal_filled.csv`：7 条输出 × 8 类信号 × A/B 两列人工复核，共 112 行；按 56 个信号项计算 MRhigh=0.50、P=0.5455、R=0.75、Rw=0.6842、over_inference_rate=0.4545。
+- `eval/run_real_eval.py` 仍定位为离线覆盖计划，不调用 Hy3；真实 D4/D5 主指标由 `eval/validity/real_signal_metrics.py` 计算。
 
 ### 7.2 结构化财务字段（`data/derived/real_financials_2021_2025.csv`）
 
@@ -210,6 +219,6 @@ company,stock_code,year,revenue,cogs,net_profit,cfo,accounts_receivable,inventor
 
 ### 7.5 后续工作（暂不展开）
 
-- 真实样本结构化摘录已覆盖 8 家公司；后续不再新增公司，优先转向人工金标准、真实样本评测执行与典型案例分析。
-- 待补 21 条 `report_date` 字段：在巨潮资讯网对应公司「定期报告」列表页查询公告精确日期后回填。
-- 真实样本评测管线 `eval/run_real_eval.py` 已创建骨架（不调 Hy3、不出 D4/D5 主结论），等人工金标准建立后再启用。
+- 真实样本结构化摘录、7 条 Hy3 实跑和信号级人工复核已完成；后续不再优先新增公司，转向扩充独立人工难例、round=2 与典型案例分析。
+- 待补 21 条 `report_date` 字段：在 CNINFO 对应公司「定期报告」列表页查询公告精确日期后回填；当前空值已在 `notes` 中明确标记。
+- 继续扩充独立人工难例和 round=2，避免当前卡片级标注在单一类别/常量分数下无法定义 κ 与 Spearman。

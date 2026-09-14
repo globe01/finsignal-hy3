@@ -93,7 +93,7 @@ def run_dry(selected, samples):
     print(preview[:600] + (" ..." if len(preview) > 600 else ""))
     print("-" * 72)
     print(f"实际运行将写入：\n  {OUT_JSONL}\n  {OUT_CSV}")
-    print("DRY-RUN 完成 ✅（未产生任何 API 调用，未写入输出文件）")
+    print("DRY-RUN 完成 [PASS]（未产生任何 API 调用，未写入输出文件）")
     return 0
 
 

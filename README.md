@@ -6,6 +6,7 @@
 
 [![Python](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
 [![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![CI](https://github.com/globe01/finsignal-hy3/actions/workflows/ci.yml/badge.svg)](https://github.com/globe01/finsignal-hy3/actions/workflows/ci.yml)
 [![Status](https://img.shields.io/badge/status-demo%2Beval-green)](#项目进度)
 
 ## 项目简介
@@ -29,6 +30,18 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - **会计一致的异常注入**：通过配套传导和报表恒等式检查构造可控评测样本。
 - **阴性与对抗验证**：检查模型是否强行找问题，以及评估器能否识别伪造证据、错误公式和术语堆砌。
 - **评估器消融**：对比 **Hy3 语义评审**（`eval/hy3_judge.py`，逐卡片锚定 Rubric 打分）与 **规则 Rubric**（`eval/rule_rubric.py`，确定性启发式）两条路径的一致性（`compare_judges`）。两者都不是 D7/D8 的真值——规则路径会被套话骗过，Hy3 路径有同族自我偏好；正式真值以人工复核后的标注文件为准。
+
+## 一眼看懂当前结果
+
+| 证据 | 当前结果 | 应如何解读 |
+|---|---:|---|
+| 合成评测集 | 40 个窗口，覆盖阴性、三档强度、阈下、长文本、术语堆砌和年份错置 | 用于验证评估器判别力与模型在受控场景下的行为 |
+| Hy3 在线评测 | 3 轮：MRhigh **7.4%**、R **94.4%**、P **75.8%**、D1/D3 **90.7%** | 真实模型能检出大部分信号，但严重度判级 D6 仅 **49.0%**，是首要改进点 |
+| 真实年报数据 | 8 家公司、40 份年报、24 个三年窗口；另有 7 条 Hy3 实跑 | 覆盖多制造业子行业、元/千元/万元单位差异与 N/A 字段 |
+| 真实样本人工复核 | 56 个信号项：MRhigh **50.0%**、P **54.5%**、R **75.0%**、Rw **68.4%** | 小样本业务复核结果，不能替代更大规模人工金标准 |
+| 评估器有效性 | good > medium > bad > adversarial；重复评估 `max_delta = 0` | 评估器能区分质量档位且规则路径确定性良好 |
+
+> 以上数字严格区分“合成/在线评测”“真实年报小样本”和“人工复核”。其中 D7/D8 的人工标签本批分布较单一，Cohen's κ 与 Spearman 统计上不可定义，脚本以 `null` 表示，不将其包装成强一致性证据。
 
 ## 目标异常类型
 
@@ -104,8 +117,8 @@ FinSignal-Hy3 面向财务学习者、投研实习生和审计辅助人员。项
 - [x] 注入引擎（会计恒等式自洽）+ 四层金标准（注入元数据独立真值）
 - [x] 规则评估器 D1–D8 + 微平均聚合（输出分子/分母，N/A 不记 0）
 - [x] Hy3-as-Judge 语义评审模块（方案 §5.6，与规则 Rubric 并列，非替代）
-- [x] 离线自检（`--offline` 零依赖）+ 217 项 pytest 单元测试
-- [x] 接入真实上市公司公开数据（Phase 3：8 家 40 份 PDF 已收集，`data/derived/manifest.csv` 来源清单已生成；**宁德时代、隆基绿能、格力电器、比亚迪、万华化学、三一重工、中兴通讯、恒瑞医药 2021-2025 全部完成 5 年结构化摘录**（隆基 2024 使用修订版、2025 商誉原表为空；比亚迪 2021 BS/IS/CF 原表单位元、2022-2025 BS/IS/CF 原表单位千元、NR 表 5 年单位均元；万华化学 2021-2025 BS/IS/CF/NR 原表单位均为元；三一重工 2021-2025 BS/IS/CF/NR 原表单位均为千元；中兴通讯 2021-2025 BS/IS/CF/NR 原表单位均为千元（A/H 股双上市，权益用"股东权益"表述，末段"股东权益合计"行列布局在 2022 年翻转，故 equity 改用资产总计−负债合计核算；中兴商誉极小（千元级，2022/2023/2025 原表列示为"-"按空值处理））；恒瑞医药 2021-2025 BS/IS/CF/NR 原表单位均为元（无需换算），但 2023 年合并BS部分行（资产总计/非流动资产合计）列布局翻转（标签居中、本期列在末位），已用"标签相对金额位置"法统一判定本期列；恒瑞商誉 5 年合并BS主表未列示、短期借款仅 2022 合并BS主表有值（2023 当期为"-"、2021/2024/2025 合并BS主表未列示），均按空值保留不填 0）；8 家已全部写入 `data/derived/real_financials_2021_2025.csv`（40 行 × 21 列）。真实样本评测管线 `eval/run_real_eval.py` 仅完成骨架，不出 D4/D5 主结论。详见 [docs/real_data_sources.md](docs/real_data_sources.md) §7）
+- [x] 离线自检（`--offline` 零依赖）+ 220 项 pytest 单元测试
+- [x] 接入真实上市公司公开数据（8 家 × 2021-2025，共 40 份年报、24 个三年窗口），并完成 7 条 Hy3 代表样本实跑；结构化数据见 `data/derived/real_financials_2021_2025.csv`，来源清单见 `data/derived/manifest.csv`。`eval/run_real_eval.py` 保留为离线覆盖计划，真实 D4/D5 主指标由 `eval/validity/real_signal_metrics.py` 基于人工复核文件计算，详见 [docs/real_data_sources.md](docs/real_data_sources.md) §7。
 - [x] 人工一致性材料（`docs/annotation_guide.md` + `eval/validity/agreement.py` + 双人盲评模板 `eval/validity/annotations_todo.csv` + 人工复核结果 `eval/validity/annotations_filled.csv` + 真实样本信号级人工标注 `eval/validity/real_signal_filled.csv`）
 - [x] Streamlit 最小可用 Demo（`app/streamlit_app.py`，上传/粘贴 → Hy3 → 卡片 + D1/D2/D3/D8 校验）
 - [x] 2 分钟以内 Demo 视频（[`demo.mp4`](demo.mp4)）
@@ -257,6 +270,13 @@ finsignal-hy3/
 ## 免责声明
 
 本项目仅用于教育、研究和开源活动展示。输出内容不能替代注册会计师、审计机构、证券研究人员或其他专业人士的判断，不构成投资建议、交易建议或财务造假认定。
+
+## 当前局限
+
+- 真实 Hy3 实跑目前为 7 条代表样本，人工信号级复核为 56 个 `(sample_id, signal_type)` 项，结论用于展示和方法验证，不代表完整模型能力。
+- 本轮 A/B 卡片标注在 `signal_valid` 与 `d7_score` 上分布退化，Cohen's κ、Spearman 与重复轮次波动不能形成强统计证据；后续应补充有差异难例和 round=2。
+- D6 严重度一致性是合成在线评测中的最低维度（49.0%）；D7/D8 的真实 Hy3-as-Judge 汇总尚未入库，当前以规则路径和人工复核为主。
+- 21 条年报公告日期仍待从 CNINFO 公告页补齐；当前来源清单已提供官方公司披露索引和结构化字段页码，缺失项明确标注，不用报告期日期冒充公告日期。
 
 ## 活动声明
 
